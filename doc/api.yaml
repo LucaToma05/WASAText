@@ -7,10 +7,31 @@ info:
 
 components:
   schemas:
+    User:
+      description: Oggetto utente
+      type: object
+      properties:
+        user_id: 
+          $ref: '#/components/schemas/User_id'
+        foto_profilo:
+          type: string
+          format: binary
+          
+    General_id:
+      description: Identificatore generale
+      type: string
+      example: "avfd457ud3"
+      
+            
     User_id:
       description: Identificatore utente
       type: string
       example: "avfd457ud3"
+      
+    Message_id:
+      description: Identificatore messaggio
+      type: string
+      example: "vafdbl432b"
           
     Object_id:
       description: Risposta con identificatore a seguito del login
@@ -34,24 +55,25 @@ components:
           type: string
           example: "vadbjk31po"
         proprietario:
-          type: string
-          example: "Simone"
+          $ref: '#/components/schemas/User'
         ultimo_messaggio:
           type: string
           example: "ciao"
         istante_ultimo_messaggio:
           type: string
           example: date-time
-        foto_profilo:
-          type: string
-          format: binary
+        state:
+          type: integer
+          enum: 
+            - 1
+            - 2
+          
     
     Chat:
       description: Lista di messaggi in ordine cronologico inverso
       type: array
       items:
         $ref: '#/components/schemas/Message'
-            
     
   
   
@@ -63,6 +85,22 @@ components:
       required: true
       schema: 
         $ref: '#/components/schemas/User_id'
+        
+    message_id_param:
+      name: message_id
+      in: path
+      description: Identificatore messaggio
+      required: true
+      schema:
+        $ref: '#/components/schemas/Message_id'
+    
+    comment_id_param:
+      name: comment_id
+      in: path
+      description: Identificatore risposta
+      required: true
+      schema:
+        $ref: '#/components/schemas/General_id'
           
 
 paths:
@@ -166,4 +204,81 @@ paths:
         "200":
           description: Messaggio inviato con successo
           
+  /users/{user_id}/chats/{user_id}/messages/{message_id}:
+    parameters:
+      - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/message_id_param'
+      
+    delete:
+      operationId: deleteMessage
+      summary: Eliminazione messaggio
+      description: |
+        Elimina tramite id un specifico messaggio in una chat
+      responses:
+        "204":
+          description: Commento eliminato con successo
+      
+          
+  /users/{user_id}/chats/{user_id}/messages/{message_id}/forward:
+    parameters:
+      - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/message_id_param'
+    
+    post:
+      operationId: forwardMessage
+      summary: Inoltro messaggio
+      description: |
+        Preso un messaggio da una chat, inoltra il messaggio specificando l'identificativo della chat
+      requestBody:
+        description: Destinatario del messaggio da inoltrare
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                forwarding_user_id:
+                  type: string
+      responses:
+        "200":
+          description: Messaggio inoltrato con successo
+                
+  /users/{user_id}/chats/{user_id}/messages/{message_id}/comment:
+    parameters:
+      - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/message_id_param'
+    
+    post:
+      operationId: commentMessage
+      summary: Commento messaggio
+      description: |
+        Preso un messaggio da una chat, risponde al messaggio commentando con 
+        un ulteriore messaggio sulla stessa chat
+      requestBody:
+        description: Messaggio con cui rispondere
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        "200": 
+          description: Risposta inviata con successo
         
+                
+                
+  /users/{user_id}/chats/{user_id}/messages/{message_id}/comment/{comment_id}:
+    parameters:
+      - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/message_id_param'
+      - $ref: '#/components/parameters/comment_id_param'
+      
+    delete:
+      operationId: uncommentMessage
+      summary: Eliminazione commento
+      description: |
+        Elimina tramite id lo specifico commento di uno 
+        specifico messaggio
+      responses:
+        "204":
+          description: Commento eliminato con successo
