@@ -12,7 +12,10 @@ components:
       type: object
       properties:
         user_id: 
-          $ref: '#/components/schemas/User_id'
+          $ref: '#/components/schemas/General_id'
+        nome:
+          type: string
+          example: "Luca"
         foto_profilo:
           $ref: '#/components/schemas/Photo'
     
@@ -26,48 +29,54 @@ components:
           example: "Desktop/me/foto.png"
           
     General_id:
-      description: Identificatore generale
+      description: Definisce il formato di identificatori generale
       type: string
       example: "avfd457ud3"
-      
-            
-    User_id:
-      description: Identificatore utente
-      type: string
-      example: "avfd457ud3"
-      
-    Message_id:
-      description: Identificatore messaggio
-      type: string
-      example: "vafdbl432b"
           
     Object_id:
       description: Risposta con identificatore a seguito del login
       type: object
       properties:
         user_id:
-          $ref: '#/components/schemas/User_id'
+          $ref: '#/components/schemas/General_id'
           
     Chat_list:
       description: Lista di chat in ordine cronologico inverso
       type: array
       items:
-        $ref: '#/components/schemas/Message'
+        $ref: '#/components/schemas/Chat_preview'
+        
+    Chat_preview:
+      description: |
+        Oggetto preview di una chat che mostra nome, foto, ultimo messaggio e la sua relativa ora di invio
+      type: object
+      properties:
+        identificativo:
+          $ref: '#/components/schemas/General_id'
+        nome:
+          type: string
+          example: "Luca"
+        foto_profilo:
+          $ref: '#/components/schemas/Photo'
+        istante_ultimo_messaggio:
+          type: string
+          format: date-time
+        ultimo_messaggio:
+          $ref: '#/components/schemas/Message'
         
     Message:
       description: | 
-        Oggetto messaggio utilizzato anche come preview di chat con un altro utente
+        Oggetto messaggio 
       type: object
       properties: 
         identificativo:
-          type: string
-          example: "vadbjk31po"
-        proprietario:
+          $ref: '#/components/schemas/General_id'
+        mittente:
           $ref: '#/components/schemas/User'
-        ultimo_messaggio:
+        testo:
           type: string
           example: "ciao"
-        istante_ultimo_messaggio:
+        istante:
           type: string
           example: date-time
         state:
@@ -75,13 +84,24 @@ components:
           enum: 
             - 1
             - 2
-          
     
     Chat:
       description: Lista di messaggi in ordine cronologico inverso
       type: array
       items:
         $ref: '#/components/schemas/Message'
+        
+    Single_chat:
+      description: |
+        Oggetto che definisce la chat tra due persone
+      type: object
+      properties:
+        identificativo:
+          $ref: '#/components/schemas/General_id'
+        destinatario:
+          $ref: '#/components/schemas/User'
+        messaggi:
+          $ref: '#/components/schemas/Chat'
     
     Group:
       description: |
@@ -100,10 +120,12 @@ components:
             $ref: '#/components/schemas/User'
         foto:
           $ref: '#/components/schemas/Photo'
+        messaggi:
+          $ref: '#/components/schemas/Chat'
       required:
         - identificativo
         - nome
-        
+  
   
   
   parameters:
@@ -113,7 +135,7 @@ components:
       description: Identificatore utente
       required: true
       schema: 
-        $ref: '#/components/schemas/User_id'
+        $ref: '#/components/schemas/General_id'
         
     message_id_param:
       name: message_id
@@ -121,7 +143,7 @@ components:
       description: Identificatore messaggio
       required: true
       schema:
-        $ref: '#/components/schemas/Message_id'
+        $ref: '#/components/schemas/General_id'
     
     comment_id_param:
       name: comment_id
@@ -138,7 +160,16 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/General_id'
-          
+    
+    chat_id_param:
+      name: chat_id
+      in: path
+      description: Identificatore chat
+      required: true
+      schema: 
+        $ref: '#/components/schemas/General_id'
+
+
 
 paths:
   /session:
@@ -233,9 +264,10 @@ paths:
                 $ref: '#/components/schemas/Chat_list'
   
                 
-  /users/{user_id}/chats/{user_id}/messages:
+  /users/{user_id}/chats/{chat_id}/messages:
     parameters:
       - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/chat_id_param'
     get:
       operationId: getConversation
       summary:  Restituisce una chat
@@ -265,9 +297,10 @@ paths:
         "200":
           description: Messaggio inviato con successo
           
-  /users/{user_id}/chats/{user_id}/messages/{message_id}:
+  /users/{user_id}/chats/{chat_id}/messages/{message_id}:
     parameters:
       - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       
     delete:
@@ -280,9 +313,10 @@ paths:
           description: Commento eliminato con successo
       
           
-  /users/{user_id}/chats/{user_id}/messages/{message_id}/forward:
+  /users/{user_id}/chats/{chat_id}/messages/{message_id}/forward:
     parameters:
       - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
     
     post:
@@ -304,9 +338,10 @@ paths:
         "200":
           description: Messaggio inoltrato con successo
                 
-  /users/{user_id}/chats/{user_id}/messages/{message_id}/comment:
+  /users/{user_id}/chats/{chat_id}/messages/{message_id}/comment:
     parameters:
       - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
     
     post:
@@ -328,9 +363,10 @@ paths:
         
                 
                 
-  /users/{user_id}/chats/{user_id}/messages/{message_id}/comment/{comment_id}:
+  /users/{user_id}/chats/{chat_id}/messages/{message_id}/comment/{comment_id}:
     parameters:
       - $ref: '#/components/parameters/user_id_param'
+      - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       - $ref: '#/components/parameters/comment_id_param'
       
@@ -436,7 +472,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User_id'
+              $ref: '#/components/schemas/General_id'
       responses:
         "200":
           description: Utente aggiunto al gruppo con successo
@@ -449,3 +485,4 @@ paths:
       responses:
         "204":  
           description: L'utente ha abbandonato il gruppo correttamente
+        
