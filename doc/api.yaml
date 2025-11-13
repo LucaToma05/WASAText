@@ -32,6 +32,8 @@ components:
       description: Definisce il formato di identificatori generale
       type: string
       example: "avfd457ud3"
+      minLength: 3
+      maxLength: 16
           
     Object_id:
       description: Risposta con identificatore a seguito del login
@@ -85,47 +87,69 @@ components:
             - 1
             - 2
     
-    Chat:
+    Messages:
       description: Lista di messaggi in ordine cronologico inverso
       type: array
       items:
         $ref: '#/components/schemas/Message'
         
+    Chat:
+      description: |
+        Oggetto di chat generica (chat singola o gruppo)
+      type: object
+      properties:
+        identificativo: 
+          $ref: '#/components/schemas/General_id'
+        messaggi:
+          $ref: '#/components/schemas/Messages'
+        
+        
     Single_chat:
       description: |
         Oggetto che definisce la chat tra due persone
-      type: object
-      properties:
-        identificativo:
-          $ref: '#/components/schemas/General_id'
-        destinatario:
-          $ref: '#/components/schemas/User'
-        messaggi:
-          $ref: '#/components/schemas/Chat'
+      allOf:
+      - $ref: '#/components/schemas/Chat'
+      - type: object
+        properties:
+          destinatario:
+            $ref: '#/components/schemas/User'
+
     
     Group:
       description: |
         Oggetto che definisce un gruppo, comprende id, nome, lista dei partecipanti
         e foto del gruppo (facoltativa)
+      allOf:
+      - $ref: '#/components/schemas/Chat'
+      - type: object
+        properties:
+          nome:
+            type: string
+            example: "Gruppo vacanze"
+          partecipanti:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
+          foto:
+            $ref: '#/components/schemas/Photo'
+        required:
+          - identificativo
+          - nome
+  
+  
+    Error:
+      description: |
+        Oggetto di risposta per codici di errore
       type: object
       properties:
-        identificativo:
-          $ref: '#/components/schemas/General_id'
-        nome:
+        codice:
           type: string
-          example: "Gruppo vacanze"
-        partecipanti:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-        foto:
-          $ref: '#/components/schemas/Photo'
-        messaggi:
-          $ref: '#/components/schemas/Chat'
-      required:
-        - identificativo
-        - nome
-  
+          example: "Bad Request"
+        messaggio:
+          type: string
+          example: "Manca l'oggetto da sostituire"
+          
+    
   
   
   parameters:
@@ -168,36 +192,63 @@ components:
       required: true
       schema: 
         $ref: '#/components/schemas/General_id'
+        
+        
+  responses:
+    BadRequest:
+      description: Richiesta non fornita o errata
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            
+    NotFound:
+      description: Risorsa non trovata
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      
 
 
 
 paths:
   /session:
     post:
+      tags: ["login"]
       operationId: doLogin
-      summary: Creazione utente
+      summary: Logs in the user
       description: |
-        Se l'utente non esiste, viene creato. Viene ritornato l'identificatore in entrambi i casi.
+        If the user does not exist, it will be created,
+        and an identifier is returned.
+        If the user exists, the user identifier is returned
       requestBody:
-        description: |
-          Username dell'utente.
+        description: User details
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Object_id'
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: Maria
+                    pattern: '^.*?$'
+                    minLength: 3
+                    maxLength: 16
       responses:
         "201":
-          description: Utente creato con successo
+          description: User log-in action succesful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Object_id'
+                type: object
+                properties:
+                  identifier:
+                    type: string
+                    example: "abcdef012345"
                 
-  /users/{user_id}/username: 
-    parameters:
-      - $ref: '#/components/parameters/user_id_param'
-      
+  /me/username: 
     put:
       operationId: setMyUsername
       summary: Aggiornamento del nickname dell'utente
@@ -205,7 +256,7 @@ paths:
         Sostituisce il nickname dell'utente
       requestBody:
         description: |
-          Oggetto con nickanem da sostituire con il precedente
+          Oggetto con nickname da sostituire con il precedente
         required: true
         content:
           application/json:
@@ -218,12 +269,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Object_id'
+        "400":
+          $ref: '#/components/responses/BadRequest'
                 
-                
-  /users/{user_id}/photo:
-    parameters:
-      - $ref: '#/components/parameters/user_id_param'
-    
+  /me/photo:
     put:
       operationId: setMyPhoto
       summary: Aggiorna foto
@@ -237,19 +286,18 @@ paths:
             schema:
               $ref: '#/components/schemas/Photo'
       responses:
-        "201":
+        "200":
           description: Foto profilo aggiornata con successo
           content:
             application/json:
               schema: 
                 $ref: '#/components/schemas/User'
+        "400":
+          $ref: '#/components/responses/BadRequest'
               
               
                     
-  /users/{user_id}/chats:
-    parameters:
-      - $ref: '#/components/parameters/user_id_param'
-      
+  /me/chats:
     get:
       operationId: getMyConversations
       summary: Elenca chat
@@ -262,11 +310,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chat_list'
+        "404":
+          $ref: '#/components/responses/NotFound'
   
                 
-  /users/{user_id}/chats/{chat_id}/messages:
+  /me/chats/{chat_id}/messages:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/chat_id_param'
     get:
       operationId: getConversation
@@ -280,7 +329,8 @@ paths:
             application/json:
               schema: 
                 $ref: '#/components/schemas/Chat'
-                
+        "404":
+          $ref: '#/components/responses/NotFound'
     post:
       operationId: sendMessage
       summary: Invio messaggio
@@ -297,9 +347,8 @@ paths:
         "200":
           description: Messaggio inviato con successo
           
-  /users/{user_id}/chats/{chat_id}/messages/{message_id}:
+  /me/chats/{chat_id}/messages/{message_id}:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       
@@ -313,9 +362,8 @@ paths:
           description: Commento eliminato con successo
       
           
-  /users/{user_id}/chats/{chat_id}/messages/{message_id}/forward:
+  /me/chats/{chat_id}/messages/{message_id}/forward:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
     
@@ -338,9 +386,8 @@ paths:
         "200":
           description: Messaggio inoltrato con successo
                 
-  /users/{user_id}/chats/{chat_id}/messages/{message_id}/comment:
+  /me/chats/{chat_id}/messages/{message_id}/comment:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
     
@@ -363,9 +410,8 @@ paths:
         
                 
                 
-  /users/{user_id}/chats/{chat_id}/messages/{message_id}/comment/{comment_id}:
+  /me/chats/{chat_id}/messages/{message_id}/comment/{comment_id}:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       - $ref: '#/components/parameters/comment_id_param'
@@ -381,10 +427,7 @@ paths:
           description: Commento eliminato con successo
           
           
-  /users/{user_id}/chats/groups:
-    parameters:
-      - $ref: '#/components/parameters/user_id_param'
-      
+  /me/chats/groups:
     post:
       operationId: createGroup
       summary: Crea gruppo
@@ -408,9 +451,8 @@ paths:
 
           
   
-  /users/{user_id}/chats/groups/{group_id}/name:
+  /me/chats/groups/{group_id}/name:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/group_id_param'
     put:
       operationId: setGroupName
@@ -433,9 +475,8 @@ paths:
           description: Nome del gruppo aggiornato
           
           
-  /users/{user_id}/chats/groups/{group_id}/photo:
+  /me/chats/groups/{group_id}/photo:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/group_id_param'
   
     put:
@@ -456,9 +497,8 @@ paths:
       
   
           
-  /users/{user_id}/chats/groups/{group_id}/members:
+  /me/chats/groups/{group_id}/members:
     parameters:
-      - $ref: '#/components/parameters/user_id_param'
       - $ref: '#/components/parameters/group_id_param'
 
     post:
@@ -485,4 +525,3 @@ paths:
       responses:
         "204":  
           description: L'utente ha abbandonato il gruppo correttamente
-        
