@@ -18,6 +18,8 @@ components:
           example: "Luca"
         photo:
           $ref: '#/components/schemas/Photo'
+      required:
+      - user_id
     
     Photo:
       description: User or group profile photo
@@ -87,6 +89,8 @@ components:
           enum: 
             - 1
             - 2
+      required:
+       - text
     
     Messages:
       description: Lista di messaggi in ordine cronologico inverso
@@ -355,6 +359,8 @@ paths:
                 $ref: '#/components/schemas/Message'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
           
           
   /me/chats/{chat_id}/messages/{message_id}:
@@ -381,22 +387,28 @@ paths:
     
     post:
       operationId: forwardMessage
-      summary: Inoltro messaggio
+      summary: Forward a message
       description: |
-        Preso un messaggio da una chat, inoltra il messaggio specificando l'identificativo della chat
+        Receiving a message from a chat, forward the message specifying the chat ID
       requestBody:
-        description: Destinatario del messaggio da inoltrare
+        description: Recipient of the forwarded message
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                forwarding_user_id:
-                  type: string
+              $ref: '#/components/schemas/User'
       responses:
-        "200":
-          description: Messaggio inoltrato con successo
+        "201":
+          description: Message forwarded successfully and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+                
                 
   /me/chats/{chat_id}/messages/{message_id}/comment:
     parameters:
@@ -459,82 +471,3 @@ paths:
               schema:
                 $ref: '#/components/schemas/Group'
                 
-                
-
-          
-  
-  /me/chats/groups/{group_id}/name:
-    parameters:
-      - $ref: '#/components/parameters/group_id_param'
-    put:
-      operationId: setGroupName
-      summary: Aggiorna nome gruppo
-      description: |
-        Aggiorna il nome di un determinato gruppo
-      requestBody:
-        description: Nome da assegnare al gruppo
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nome:
-                  type: string
-                  example: "gruppo università"
-      responses:
-        "200":
-          description: Nome del gruppo aggiornato
-          
-          
-  /me/chats/groups/{group_id}/photo:
-    parameters:
-      - $ref: '#/components/parameters/group_id_param'
-  
-    put:
-      operationId: setGroupPhoto
-      summary: Aggiorna foto del gruppo
-      description: |
-        Aggiorna la foto profilo del gruppo
-      requestBody:
-        description: Foto da aggiornare
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Photo'
-      responses:
-        "200":
-          description: Foto profilo aggiornata con successo
-      
-  
-          
-  /me/chats/groups/{group_id}/members:
-    parameters:
-      - $ref: '#/components/parameters/group_id_param'
-
-    post:
-      operationId: addToGroup
-      summary: Aggiungi al gruppo
-      description: |
-        Inserisce un utente in un gruppo
-      requestBody:
-        description: Utente da inserire nel gruppo
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/General_id'
-      responses:
-        "200":
-          description: Utente aggiunto al gruppo con successo
-  
-    delete:
-      operationId: leaveGroup
-      summary: Abbandona gruppo
-      description: |
-        L'utente corrente abbandona il gruppo
-      responses:
-        "204":  
-          description: L'utente ha abbandonato il gruppo correttamente
-        
