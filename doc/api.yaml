@@ -2,25 +2,25 @@ openapi: 3.0.0
 info:
   title: WASAText
   description: |
-    Piattaforma di messaggistica che supporta chat individuali e di gruppo, accessibile tramite PC.
+    Messaging platform that supports individual and group chats, accessible via PC.
   version: 1.0.0
 
 components:
   schemas:
     User:
-      description: Oggetto utente
+      description: User object
       type: object
       properties:
         user_id: 
           $ref: '#/components/schemas/General_id'
-        nome:
+        name:
           type: string
           example: "Luca"
-        foto_profilo:
+        photo:
           $ref: '#/components/schemas/Photo'
     
     Photo:
-      description: Foto profilo dell'utente
+      description: User or group profile photo
       type: object
       properties:
         photo:
@@ -29,56 +29,57 @@ components:
           example: "Desktop/me/foto.png"
           
     General_id:
-      description: Definisce il formato di identificatori generale
+      description: Defines the format for identifiers
       type: string
       example: "avfd457ud3"
       minLength: 3
       maxLength: 16
+      pattern: '^.*?$'
           
     Object_id:
-      description: Risposta con identificatore a seguito del login
+      description: Response object with identifier
       type: object
       properties:
         user_id:
           $ref: '#/components/schemas/General_id'
           
     Chat_list:
-      description: Lista di chat in ordine cronologico inverso
+      description: Chat list in reverse chronological order
       type: array
       items:
         $ref: '#/components/schemas/Chat_preview'
         
     Chat_preview:
       description: |
-        Oggetto preview di una chat che mostra nome, foto, ultimo messaggio e la sua relativa ora di invio
+        Chat preview object showing name, photo, last message and its sending time
       type: object
       properties:
-        identificativo:
+        id:
           $ref: '#/components/schemas/General_id'
-        nome:
+        name:
           type: string
           example: "Luca"
-        foto_profilo:
+        photo:
           $ref: '#/components/schemas/Photo'
-        istante_ultimo_messaggio:
+        last_message_instant:
           type: string
           format: date-time
-        ultimo_messaggio:
+        last_message:
           $ref: '#/components/schemas/Message'
         
     Message:
       description: | 
-        Oggetto messaggio 
+        Message object
       type: object
       properties: 
-        identificativo:
+        id:
           $ref: '#/components/schemas/General_id'
-        mittente:
+        sender:
           $ref: '#/components/schemas/User'
-        testo:
+        text:
           type: string
           example: "ciao"
-        istante:
+        instant:
           type: string
           example: date-time
         state:
@@ -248,15 +249,16 @@ paths:
                     type: string
                     example: "abcdef012345"
                 
+                
   /me/username: 
     put:
       operationId: setMyUsername
-      summary: Aggiornamento del nickname dell'utente
+      summary: Update the user's nickname
       description: |
-        Sostituisce il nickname dell'utente
+        Update the user's nickname and returns it
       requestBody:
         description: |
-          Oggetto con nickname da sostituire con il precedente
+          Object with the new nickname to be replaced with the old one
         required: true
         content:
           application/json:
@@ -264,22 +266,23 @@ paths:
               $ref: '#/components/schemas/Object_id'
       responses:
         "200":
-          description: Aggiornamento avvenuto con successo e oggetto restituito
+          description: Update successful and nickname returned
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Object_id'
         "400":
           $ref: '#/components/responses/BadRequest'
+             
                 
   /me/photo:
     put:
       operationId: setMyPhoto
-      summary: Aggiorna foto
+      summary: Update the user's photo
       description: |
-        Aggiorna la foto profilo dell'utente
+        Update the user's photo and returns it
       requestBody:
-        description: Foto da aggiornare
+        description: New photo to be replaced with the old one 
         required: true
         content:
           application/json:
@@ -287,7 +290,7 @@ paths:
               $ref: '#/components/schemas/Photo'
       responses:
         "200":
-          description: Foto profilo aggiornata con successo
+          description: Photo updated successfully
           content:
             application/json:
               schema: 
@@ -295,17 +298,16 @@ paths:
         "400":
           $ref: '#/components/responses/BadRequest'
               
-              
                     
   /me/chats:
     get:
       operationId: getMyConversations
-      summary: Elenca chat
+      summary: List all chats
       description: |
-        Elenca tutte le chat dell'utente in ordine cronologico inverso
+        Lists all the user's chats in reverse chronological order
       responses:
         "200":
-          description: Elenco delle chat restituito con successo
+          description: Chat list returned successfully
           content:
             application/json:
               schema:
@@ -319,33 +321,41 @@ paths:
       - $ref: '#/components/parameters/chat_id_param'
     get:
       operationId: getConversation
-      summary:  Restituisce una chat
+      summary:  Returns a chat
       description: |
-        Restituisce la chat con uno specifico utente/gruppo
+        Returns the chat of a group or with a specific user
       responses:
         "200":
-          description: Chat restituita con successo
+          description: Chat returned successfully
           content:
             application/json:
               schema: 
                 $ref: '#/components/schemas/Chat'
         "404":
           $ref: '#/components/responses/NotFound'
+          
     post:
       operationId: sendMessage
-      summary: Invio messaggio
+      summary: Send a message
       description: |
-        Invio di un messaggio in una chat
+        Send a message in chat
       requestBody:
-        description: Messaggio da inviare
+        description: Messagge to send
         required: true
         content: 
           application/json:
             schema:
               $ref: '#/components/schemas/Message'
       responses:
-        "200":
-          description: Messaggio inviato con successo
+        "201":
+          description: Messagge sent successfully and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+          
           
   /me/chats/{chat_id}/messages/{message_id}:
     parameters:
@@ -354,12 +364,14 @@ paths:
       
     delete:
       operationId: deleteMessage
-      summary: Eliminazione messaggio
+      summary: Delete a message
       description: |
-        Elimina tramite id un specifico messaggio in una chat
+        delete a specific chat message by id
       responses:
         "204":
-          description: Commento eliminato con successo
+          description: Message successfully deleted
+        "404":
+          $ref: '#/components/responses/NotFound'
       
           
   /me/chats/{chat_id}/messages/{message_id}/forward:
@@ -525,3 +537,4 @@ paths:
       responses:
         "204":  
           description: L'utente ha abbandonato il gruppo correttamente
+        
