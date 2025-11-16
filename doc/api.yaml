@@ -83,7 +83,11 @@ components:
           example: "ciao"
         instant:
           type: string
-          example: date-time
+          format: date-time
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
         state:
           type: integer
           enum: 
@@ -91,68 +95,74 @@ components:
             - 2
       required:
        - text
+       
+    
+    Comment:
+      description: Reaction object
+      type: object
+      properties:
+        id: 
+          $ref: '#/components/schemas/General_id'
+        sender:
+          $ref: '#/components/schemas/User'
+        emoji:
+          type: string
+          enum:
+          - 👍
+          - 😂
+          - ❤️
+          - 😡
+      required: 
+        - emoji
     
     Messages:
-      description: Lista di messaggi in ordine cronologico inverso
+      description: List of messages in reverse chronological order
       type: array
       items:
         $ref: '#/components/schemas/Message'
         
     Chat:
       description: |
-        Oggetto di chat generica (chat singola o gruppo)
+        Generic chat object (single or group chat)
       type: object
       properties:
-        identificativo: 
+        id: 
           $ref: '#/components/schemas/General_id'
-        messaggi:
+        messages:
           $ref: '#/components/schemas/Messages'
-        
-        
-    Single_chat:
-      description: |
-        Oggetto che definisce la chat tra due persone
-      allOf:
-      - $ref: '#/components/schemas/Chat'
-      - type: object
-        properties:
-          destinatario:
-            $ref: '#/components/schemas/User'
 
-    
+
     Group:
       description: |
-        Oggetto che definisce un gruppo, comprende id, nome, lista dei partecipanti
-        e foto del gruppo (facoltativa)
+        Object that defines a group including id, name, list of participants and group photo (optional)
       allOf:
       - $ref: '#/components/schemas/Chat'
       - type: object
         properties:
-          nome:
+          name:
             type: string
-            example: "Gruppo vacanze"
-          partecipanti:
+            example: "Class group"
+          participants:
             type: array
             items:
               $ref: '#/components/schemas/User'
-          foto:
+          photo:
             $ref: '#/components/schemas/Photo'
         required:
-          - identificativo
-          - nome
+          - name
   
   
     Error:
       description: |
-        Oggetto di risposta per codici di errore
+        Response subject for error codes
       type: object
       properties:
-        codice:
+        code:
           type: string
           example: "Bad Request"
-        messaggio:
+        message:
           type: string
-          example: "Manca l'oggetto da sostituire"
+          example: "Missing request"
           
     
   
@@ -161,7 +171,7 @@ components:
     user_id_param:
       name: user_id
       in: path
-      description: Identificatore utente
+      description: User identifier
       required: true
       schema: 
         $ref: '#/components/schemas/General_id'
@@ -169,7 +179,7 @@ components:
     message_id_param:
       name: message_id
       in: path
-      description: Identificatore messaggio
+      description: Message identifier
       required: true
       schema:
         $ref: '#/components/schemas/General_id'
@@ -177,7 +187,7 @@ components:
     comment_id_param:
       name: comment_id
       in: path
-      description: Identificatore risposta
+      description: Reaction identifier
       required: true
       schema:
         $ref: '#/components/schemas/General_id'
@@ -185,7 +195,7 @@ components:
     group_id_param:
       name: group_id
       in: path
-      description: Identificatore gruppo
+      description: Group identifier
       required: true
       schema:
         $ref: '#/components/schemas/General_id'
@@ -193,7 +203,7 @@ components:
     chat_id_param:
       name: chat_id
       in: path
-      description: Identificatore chat
+      description: Chat identifier
       required: true
       schema: 
         $ref: '#/components/schemas/General_id'
@@ -201,14 +211,14 @@ components:
         
   responses:
     BadRequest:
-      description: Richiesta non fornita o errata
+      description: Missing request
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
             
     NotFound:
-      description: Risorsa non trovata
+      description: Resource not found
       content:
         application/json:
           schema:
@@ -254,20 +264,25 @@ paths:
                     example: "abcdef012345"
                 
                 
-  /me/username: 
-    put:
+  /me: 
+    patch:
+      tags: ["user"]
       operationId: setMyUsername
       summary: Update the user's nickname
       description: |
         Update the user's nickname and returns it
       requestBody:
         description: |
-          Object with the new nickname to be replaced with the old one
+          New nickname to be replaced with the old one
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Object_id'
+              type: object
+              properties:
+                nome:
+                  type: string
+                  example: "New username"
       responses:
         "200":
           description: Update successful and nickname returned
@@ -281,6 +296,7 @@ paths:
                 
   /me/photo:
     put:
+      tags: ["user"]
       operationId: setMyPhoto
       summary: Update the user's photo
       description: |
@@ -305,6 +321,7 @@ paths:
                     
   /me/chats:
     get:
+      tags: ["chat"]
       operationId: getMyConversations
       summary: List all chats
       description: |
@@ -324,6 +341,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
     get:
+      tags: ["message"]
       operationId: getConversation
       summary:  Returns a chat
       description: |
@@ -339,6 +357,7 @@ paths:
           $ref: '#/components/responses/NotFound'
           
     post:
+      tags: ["message"]
       operationId: sendMessage
       summary: Send a message
       description: |
@@ -369,10 +388,11 @@ paths:
       - $ref: '#/components/parameters/message_id_param'
       
     delete:
+      tags: ["message"]
       operationId: deleteMessage
       summary: Delete a message
       description: |
-        delete a specific chat message by id
+        Delete a specific chat message by id
       responses:
         "204":
           description: Message successfully deleted
@@ -386,6 +406,7 @@ paths:
       - $ref: '#/components/parameters/message_id_param'
     
     post:
+      tags: ["message"]
       operationId: forwardMessage
       summary: Forward a message
       description: |
@@ -410,64 +431,182 @@ paths:
           $ref: '#/components/responses/NotFound'
                 
                 
-  /me/chats/{chat_id}/messages/{message_id}/comment:
+  /me/chats/{chat_id}/messages/{message_id}/comments:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
     
     post:
+      tags: ["comment"]
       operationId: commentMessage
-      summary: Commento messaggio
+      summary: Comment a message
       description: |
-        Preso un messaggio da una chat, risponde al messaggio commentando con 
-        un ulteriore messaggio sulla stessa chat
+        reacts to a message with emojis
       requestBody:
-        description: Messaggio con cui rispondere
+        description: Emoji to react with
         required: true
         content: 
           application/json:
             schema:
-              $ref: '#/components/schemas/Message'
+              $ref: '#/components/schemas/Comment'
       responses:
-        "200": 
-          description: Risposta inviata con successo
+        "201": 
+          description: Reaction sent successfully and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
         
                 
                 
-  /me/chats/{chat_id}/messages/{message_id}/comment/{comment_id}:
+  /me/chats/{chat_id}/messages/{message_id}/comments/{comment_id}:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       - $ref: '#/components/parameters/comment_id_param'
       
     delete:
+      tags: ["comment"]
       operationId: uncommentMessage
-      summary: Eliminazione commento
+      summary: Delete a reaction
       description: |
-        Elimina tramite id lo specifico commento di uno 
-        specifico messaggio
+        Delete a specific reaction by id
       responses:
         "204":
-          description: Commento eliminato con successo
+          description: Reaction successfully deleted
+        "404":
+          $ref: '#/components/responses/NotFound'
           
           
   /me/chats/groups:
     post:
+      tags: ["group"]
       operationId: createGroup
-      summary: Crea gruppo
+      summary: Create a group
       description: |
-        Crea gruppo assegnando id, nome e foto profilo (facoltativa)
+        Create a group with id, name and profile photo (optional)
       requestBody:
-        description: Nome e foto del gruppo
+        description: Group object
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Group'
       responses:
         "201":
-          description: Gruppo creato con successo
+          description: Group created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Group'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+          
+  
+  /me/chats/groups/{group_id}:
+    parameters:
+      - $ref: '#/components/parameters/group_id_param'
+    patch:
+      tags: ["group"]
+      operationId: setGroupName
+      summary: Update the group name
+      description: |
+        Update the name of a specific group
+      requestBody:
+        description: New group name
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                  example: "New group name"
+      responses:
+        "200":
+          description: Group name updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
                 
+          
+  /me/chats/groups/{group_id}/photo:
+    parameters:
+      - $ref: '#/components/parameters/group_id_param'
+  
+    put:
+      tags: ["group"]
+      operationId: setGroupPhoto
+      summary: Update group photo
+      description: |
+        Update the group profile photo
+      requestBody:
+        description: New photo
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Photo'
+      responses:
+        "200":
+          description: Photo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+          
+  /me/chats/groups/{group_id}/members:
+    parameters:
+      - $ref: '#/components/parameters/group_id_param'
+
+    post:
+      tags: ["group"]
+      operationId: addToGroup
+      summary: Add user to a group
+      description: |
+        Add user to a group
+      requestBody:
+        description: User to put in the group
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        "201":
+          description: User added to group successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+  
+    delete:
+      tags: ["group"]
+      operationId: leaveGroup
+      summary: Leave the group
+      description: |
+        The current user leaves the group
+      responses:
+        "204":  
+          description: The user has successfully left the group
+        "404":
+          $ref: '#/components/responses/NotFound'
+        
