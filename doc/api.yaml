@@ -16,6 +16,7 @@ components:
         name:
           type: string
           example: "Luca"
+          pattern: '^.*?$'
         photo:
           $ref: '#/components/schemas/Photo'
       required:
@@ -28,7 +29,7 @@ components:
         photo:
           type: string
           format: uri
-          example: "Desktop/me/foto.png"
+          example: "https://foto.com/foto.png"
           
     General_id:
       description: Defines the format for identifiers
@@ -48,6 +49,7 @@ components:
     Chat_list:
       description: Chat list in reverse chronological order
       type: array
+      minItems: 0
       items:
         $ref: '#/components/schemas/Chat_preview'
         
@@ -60,6 +62,7 @@ components:
           $ref: '#/components/schemas/General_id'
         name:
           type: string
+          pattern: '^.*?$'
           example: "Luca"
         photo:
           $ref: '#/components/schemas/Photo'
@@ -86,6 +89,7 @@ components:
           format: date-time
         comments:
           type: array
+          minItems: 0
           items:
             $ref: '#/components/schemas/Comment'
         state:
@@ -118,6 +122,7 @@ components:
     Messages:
       description: List of messages in reverse chronological order
       type: array
+      minItems: 0
       items:
         $ref: '#/components/schemas/Message'
         
@@ -144,6 +149,7 @@ components:
             example: "Class group"
           participants:
             type: array
+            minItems: 0
             items:
               $ref: '#/components/schemas/User'
           photo:
@@ -159,6 +165,7 @@ components:
       properties:
         code:
           type: string
+          pattern: '^.*?$'
           example: "Bad Request"
         message:
           type: string
