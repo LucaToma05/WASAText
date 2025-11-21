@@ -394,6 +394,22 @@ paths:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       
+    get:
+      tags: ["message"]
+      summary: Return a message
+      description: |  
+        Return a specific chat message by id
+      responses:
+        "200":
+          description: Message returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        "404":
+          $ref: '#/components/responses/NotFound'
+                
+      
     delete:
       tags: ["message"]
       operationId: deleteMessage
@@ -516,6 +532,22 @@ paths:
   /me/chats/groups/{group_id}:
     parameters:
       - $ref: '#/components/parameters/group_id_param'
+      
+    get:
+      tags: ["group"]
+      summary: Return a group
+      description: |  
+        Return a specific group by id
+      responses:
+        "200":
+          description: Group returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        "404":
+          $ref: '#/components/responses/NotFound'
+    
     patch:
       tags: ["group"]
       operationId: setGroupName
