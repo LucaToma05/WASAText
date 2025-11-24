@@ -171,6 +171,12 @@ components:
           type: string
           example: "Missing request"
           
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+          
     
   
   
@@ -230,8 +236,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+            
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
       
-
+security:
+  - bearerAuth: []
 
 
 paths:
@@ -270,8 +284,7 @@ paths:
                     type: string
                     example: "abcdef012345"
                 
-                
-  /me: 
+  /me/username: 
     patch:
       tags: ["user"]
       operationId: setMyUsername
@@ -287,7 +300,7 @@ paths:
             schema:
               type: object
               properties:
-                nome:
+                username:
                   type: string
                   example: "New username"
       responses:
@@ -299,6 +312,11 @@ paths:
                 $ref: '#/components/schemas/Object_id'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+      
+      security:
+        - bearerAuth: []
              
                 
   /me/photo:
@@ -324,6 +342,10 @@ paths:
                 $ref: '#/components/schemas/User'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
               
                     
   /me/chats:
@@ -340,8 +362,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chat_list'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
   
                 
   /me/chats/{chat_id}/messages:
@@ -360,8 +386,12 @@ paths:
             application/json:
               schema: 
                 $ref: '#/components/schemas/Chat'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
           
     post:
       tags: ["message"]
@@ -385,8 +415,12 @@ paths:
                 $ref: '#/components/schemas/Message'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
           
           
   /me/chats/{chat_id}/messages/{message_id}:
@@ -406,8 +440,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
                 
       
     delete:
@@ -419,8 +457,12 @@ paths:
       responses:
         "204":
           description: Message successfully deleted
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
       
           
   /me/chats/{chat_id}/messages/{message_id}/forward:
@@ -450,8 +492,12 @@ paths:
                 $ref: '#/components/schemas/Message'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
                 
                 
   /me/chats/{chat_id}/messages/{message_id}/comments:
@@ -481,8 +527,12 @@ paths:
                 $ref: '#/components/schemas/Comment'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
         
                 
                 
@@ -501,8 +551,12 @@ paths:
       responses:
         "204":
           description: Reaction successfully deleted
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
           
           
   /me/chats/groups:
@@ -527,26 +581,15 @@ paths:
                 $ref: '#/components/schemas/Group'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
           
   
-  /me/chats/groups/{group_id}:
+  /me/chats/groups/{group_id}/name:
     parameters:
       - $ref: '#/components/parameters/group_id_param'
-      
-    get:
-      tags: ["group"]
-      summary: Return a group
-      description: |  
-        Return a specific group by id
-      responses:
-        "200":
-          description: Group returned successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Group'
-        "404":
-          $ref: '#/components/responses/NotFound'
     
     patch:
       tags: ["group"]
@@ -574,8 +617,12 @@ paths:
                 $ref: '#/components/schemas/Group'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
                 
           
   /me/chats/groups/{group_id}/photo:
@@ -604,8 +651,12 @@ paths:
                 $ref: '#/components/schemas/Photo'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
 
           
   /me/chats/groups/{group_id}/members:
@@ -634,8 +685,12 @@ paths:
                 $ref: '#/components/schemas/User'
         "400":
           $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
   
     delete:
       tags: ["group"]
@@ -646,6 +701,9 @@ paths:
       responses:
         "204":  
           description: The user has successfully left the group
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
-        
+      security:
+        - bearerAuth: []
