@@ -428,26 +428,6 @@ paths:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
       
-    get:
-      tags: ["message"]
-      summary: Return a message
-      description: |  
-        Return a specific chat message by id
-      responses:
-        "200":
-          description: Message returned successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Message'
-        "401":
-          $ref: '#/components/responses/UnauthorizedError'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-        - bearerAuth: []
-                
-      
     delete:
       tags: ["message"]
       operationId: deleteMessage
