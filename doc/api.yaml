@@ -17,6 +17,8 @@ components:
           type: string
           example: "Luca"
           pattern: '^.*?$'
+          minLength: 3
+          maxLength: 25
         photo:
           $ref: '#/components/schemas/Photo'
       required:
@@ -63,6 +65,8 @@ components:
         name:
           type: string
           pattern: '^.*?$'
+          minLength: 3
+          maxLength: 25
           example: "Luca"
         photo:
           $ref: '#/components/schemas/Photo'
@@ -83,7 +87,9 @@ components:
           $ref: '#/components/schemas/User'
         text:
           type: string
+          pattern: '^.*?$'
           example: "ciao"
+          minLength: 1
         instant:
           type: string
           format: date-time
@@ -146,7 +152,10 @@ components:
         properties:
           name:
             type: string
+            pattern: '^.*?$'
             example: "Class group"
+            minLength: 3
+            maxLength: 50
           participants:
             type: array
             minItems: 0
@@ -167,9 +176,14 @@ components:
           type: string
           pattern: '^.*?$'
           example: "Bad Request"
+          minLength: 3
+          maxLength: 50
         message:
           type: string
+          pattern: '^.*?$'
           example: "Missing request"
+          minLength: 3
+          maxLength: 100
           
   securitySchemes:
     bearerAuth:
@@ -282,6 +296,7 @@ paths:
                 properties:
                   identifier:
                     type: string
+                    pattern: '^.*?$'
                     example: "abcdef012345"
                 
   /me/username: 
@@ -302,6 +317,9 @@ paths:
               properties:
                 username:
                   type: string
+                  minLength: 3
+                  maxLength: 25
+                  pattern: '^.*?$'
                   example: "New username"
       responses:
         "200":
@@ -548,6 +566,7 @@ paths:
         Create a group with id, name and profile photo (optional)
       requestBody:
         description: Group object
+        required: true
         content:
           application/json:
             schema:
@@ -587,6 +606,9 @@ paths:
               properties:
                 nome:
                   type: string
+                  minLength: 3
+                  maxLength: 50
+                  pattern: '^.*?$'
                   example: "New group name"
       responses:
         "200":
@@ -687,3 +709,4 @@ paths:
           $ref: '#/components/responses/NotFound'
       security:
         - bearerAuth: []
+        
