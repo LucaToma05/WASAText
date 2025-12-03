@@ -56,13 +56,83 @@ func New(db *sql.DB) (AppDatabase, error) {
 	}
 
 	// Check if table exists. If not, the database is empty, and we need to create the structure
-	var tableName string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
-	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
-		_, err = db.Exec(sqlStmt)
-		if err != nil {
-			return nil, fmt.Errorf("error creating database structure: %w", err)
+
+	//users table creation
+	var users string
+	errUsers := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&users)
+	if errors.Is(errUsers, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE users (
+						id INTEGER NOT NULL PRIMARY KEY, 
+						name TEXT, photo TEXT);`
+		_, errUsers = db.Exec(sqlStmt)
+		if errUsers != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errUsers)
+		}
+	}
+
+	//single chats table creation
+	var singleChats string
+	errSingleChats := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='singleChats';`).Scan(&singleChats)
+	if errors.Is(errSingleChats, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE singleChats (
+						id INTEGER NOT NULL PRIMARY KEY, 
+						id_user INTEGER, 
+						FOREIGN KEY(id_user) REFERENCES users(id));`
+		_, errSingleChats = db.Exec(sqlStmt)
+		if errSingleChats != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errSingleChats)
+		}
+	}
+
+	//groups table creation
+	var groups string
+	errGroups := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='groups';`).Scan(&groups)
+	if errors.Is(errGroups, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE groups (
+						id INTEGER NOT NULL PRIMARY KEY, 
+						name TEXT, 
+						photo TEXT,
+						);`
+		_, errGroups = db.Exec(sqlStmt)
+		if errGroups != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errGroups)
+		}
+	}
+
+	//user_groups table creation (association table)
+	var userGroups string
+	errUserGroups := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='userGroups';`).Scan(&userGroups)
+	if errors.Is(errUserGroups, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE userGroups (
+						id_user INTEGER NOT NULL, 
+						id_group INTEGER NOT NULL,
+						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						FOREIGN KEY (id_user) REFERENCES users(id),
+						FOREIGN KEY (id_group) REFERENCES groups(id));`
+		_, errUserGroups = db.Exec(sqlStmt)
+		if errUserGroups != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errUserGroups)
+		}
+	}
+
+	//messages table creation
+	var messages string
+	errMessages := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='messages';`).Scan(&messages)
+	if errors.Is(errMessages, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE messages (
+						id INTEGER NOT NULL PRIMARY KEY, 
+						text TEXT, 
+						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+						state INTEGER, 
+						id_user INTEGER, 
+						id_single_chat INTEGER,
+						id_group INTEGER
+						FOREIGN KEY (id_user) REFERENCES users(id),
+						FOREIGN KEY (id_single_chat) REFERENCES singleChats(id),
+						FOREIGN KEY (id_group) REFERENCES groups(id));`
+		_, errMessages = db.Exec(sqlStmt)
+		if errMessages != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errMessages)
 		}
 	}
 
