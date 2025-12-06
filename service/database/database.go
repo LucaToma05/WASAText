@@ -55,6 +55,12 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
+	//foreign key activation
+	_, errPragma := db.Exec('PRAGMA foreign_keys = ON')
+	if errPragma != nil {
+		return nil, fmt.Errorf("foreign key activation error: %w", errPragma)
+	}
+
 	// Check if table exists. If not, the database is empty, and we need to create the structure
 
 	//users table creation
@@ -140,6 +146,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
+	//comments table creation
 	var comments string
 	errComments := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='comments';`).Scan(&comments)
 	if errors.Is(errComments, sql.ErrNoRows) {
