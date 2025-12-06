@@ -63,7 +63,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 	if errors.Is(errUsers, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE users (
 						id INTEGER NOT NULL PRIMARY KEY, 
-						name TEXT, photo TEXT);`
+						name TEXT, 
+						photo TEXT);`
 		_, errUsers = db.Exec(sqlStmt)
 		if errUsers != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", errUsers)
@@ -76,8 +77,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 	if errors.Is(errSingleChats, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE singleChats (
 						id INTEGER NOT NULL PRIMARY KEY, 
-						id_user INTEGER, 
-						FOREIGN KEY(id_user) REFERENCES users(id));`
+						id_user_1 INTEGER,
+						id_user_2 INTEGER, 
+						FOREIGN KEY (id_user_1) REFERENCES users(id),
+						FOREIGN KEY (id_user_2) REFERENCES users(id),
+						UNIQUE(id_user_1, id_user_2));`
 		_, errSingleChats = db.Exec(sqlStmt)
 		if errSingleChats != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", errSingleChats)
@@ -91,8 +95,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		sqlStmt := `CREATE TABLE groups (
 						id INTEGER NOT NULL PRIMARY KEY, 
 						name TEXT, 
-						photo TEXT,
-						);`
+						photo TEXT);`
 		_, errGroups = db.Exec(sqlStmt)
 		if errGroups != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", errGroups)
@@ -108,7 +111,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 						id_group INTEGER NOT NULL,
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 						FOREIGN KEY (id_user) REFERENCES users(id),
-						FOREIGN KEY (id_group) REFERENCES groups(id));`
+						FOREIGN KEY (id_group) REFERENCES groups(id),
+						PRIMARY KEY (id_user, id_group));`
 		_, errUserGroups = db.Exec(sqlStmt)
 		if errUserGroups != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", errUserGroups)
@@ -126,13 +130,29 @@ func New(db *sql.DB) (AppDatabase, error) {
 						state INTEGER, 
 						id_user INTEGER, 
 						id_single_chat INTEGER,
-						id_group INTEGER
+						id_group INTEGER,
 						FOREIGN KEY (id_user) REFERENCES users(id),
 						FOREIGN KEY (id_single_chat) REFERENCES singleChats(id),
 						FOREIGN KEY (id_group) REFERENCES groups(id));`
 		_, errMessages = db.Exec(sqlStmt)
 		if errMessages != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", errMessages)
+		}
+	}
+
+	var comments string
+	errComments := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='comments';`).Scan(&comments)
+	if errors.Is(errComments, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE comments (
+						id INTEGER NOT NULL PRIMARY KEY, 
+						text TEXT, 
+						id_user INTEGER, 
+						id_message INTEGER,
+						FOREIGN KEY (id_user) REFERENCES users(id),
+						FOREIGN KEY (id_message) REFERENCES messages(id));`
+		_, errComments = db.Exec(sqlStmt)
+		if errComments != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errComments)
 		}
 	}
 
