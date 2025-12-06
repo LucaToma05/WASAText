@@ -56,7 +56,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	}
 
 	//foreign key activation
-	_, errPragma := db.Exec('PRAGMA foreign_keys = ON')
+	_, errPragma := db.Exec(`PRAGMA foreign_keys = ON`)
 	if errPragma != nil {
 		return nil, fmt.Errorf("foreign key activation error: %w", errPragma)
 	}
