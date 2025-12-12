@@ -5,7 +5,7 @@ type UsernameRequest struct {
 }
 
 type User struct {
-	ID    int
+	ID    string
 	Name  string
 	Photo string
 }

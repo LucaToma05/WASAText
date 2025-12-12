@@ -34,12 +34,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/LucaToma05/WASAText/service/api"
 )
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
+
+	GetIdUserByUsername(username string) (string, error)
+	CreateUser(user api.User) error
 
 	Ping() error
 }
@@ -68,7 +73,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errUsers := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&users)
 	if errors.Is(errUsers, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE users (
-						id INTEGER NOT NULL PRIMARY KEY, 
+						id TEXT NOT NULL PRIMARY KEY, 
 						name TEXT, 
 						photo TEXT);`
 		_, errUsers = db.Exec(sqlStmt)
