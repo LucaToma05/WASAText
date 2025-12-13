@@ -6,10 +6,12 @@ import (
 	"regexp"
 
 	"github.com/julienschmidt/httprouter"
+
+	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var req UsernameRequest
+	var req structure.UsernameRequest
 
 	//Read body content
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -30,7 +32,11 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	userId := extractBearer(r.Header.Get("Authorization"))
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 

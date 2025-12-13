@@ -1,11 +1,12 @@
 //module git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated
-module  github.com/LucaToma05/WASAText
+module github.com/LucaToma05/WASAText
 
-go 1.17
+go 1.21
 
 require (
 	github.com/ardanlabs/conf v1.5.0
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.23

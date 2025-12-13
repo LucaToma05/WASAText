@@ -35,7 +35,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/LucaToma05/WASAText/service/api"
+	//"github.com/LucaToma05/WASAText/service/api"
+	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
 // AppDatabase is the high level interface for the DB
@@ -44,7 +45,7 @@ type AppDatabase interface {
 	SetName(name string) error
 
 	GetIdUserByUsername(username string) (string, error)
-	CreateUser(user api.User) error
+	CreateUser(user structure.User) error
 
 	Ping() error
 }
