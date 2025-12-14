@@ -37,9 +37,23 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
+	userId, err := extractUserId(authHeader)
+	if err != nil {
+		http.Error(w, "Token extraction error", http.StatusInternalServerError)
+	}
 
+	newUser := structure.UsernameQuery{
+		ID:       userId,
+		Username: req.Username,
+	}
+
+	err = rt.db.SetMyUserName(newUser)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+	//req è la risposta
 	w.Header().Set("Content-Type", "application/json")
-
-	json.NewEncoder(w).Encode(body)
-
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(req)
 }

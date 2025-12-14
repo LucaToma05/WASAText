@@ -4,6 +4,11 @@ type UsernameRequest struct {
 	Username string
 }
 
+type UsernameQuery struct {
+	ID       string
+	Username string
+}
+
 type User struct {
 	ID    string
 	Name  string

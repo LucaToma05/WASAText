@@ -1,7 +1,8 @@
 package database
 
-func (db *appdbimpl) setMyUserName(Username string) (string, error) {
-	var name string
-	err := db.c.QueryRow("SELECT name FROM example_table WHERE id=1").Scan(&name)
-	return name, err
+import structure "github.com/LucaToma05/WASAText/service/structure"
+
+func (db *appdbimpl) SetMyUserName(User structure.UsernameQuery) error {
+	_, err := db.c.Exec("UPDATE users SET name = ? WHERE id=?", User.Username, User.ID) //.Scan(&name)
+	return err
 }
