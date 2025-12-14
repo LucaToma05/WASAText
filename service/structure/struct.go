@@ -1,5 +1,7 @@
 package api
 
+import "time"
+
 type UsernameRequest struct {
 	Username string
 }
@@ -24,14 +26,9 @@ type User struct {
 	Photo string
 }
 
-type SingleChat struct {
-	ID    int
-	User1 int
-	User2 int
-}
-
-type Group struct {
-	ID    int
-	Name  string
-	Photo string
+type ChatQueryReturn struct {
+	Name               string
+	Photo              string
+	LastMessageInstant time.Time
+	LastMessage        string
 }

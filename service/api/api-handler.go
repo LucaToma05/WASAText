@@ -13,7 +13,6 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/session", rt.doLogin)
 	rt.router.PATCH("/me/username", rt.setMyUserName)
 	rt.router.PATCH("/me/photo", rt.setMyPhoto)
-
 	rt.router.GET("/me/chats", rt.getMyConversations)
 
 	// Special routes

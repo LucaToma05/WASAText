@@ -48,6 +48,7 @@ type AppDatabase interface {
 	CreateUser(user structure.User) error
 	SetMyUserName(User structure.UsernameQuery) error
 	SetMyPhoto(Photo structure.PhotoQuery) error
+	GetMyConversations(id string) []structure.ChatQueryReturn
 
 	Ping() error
 }
@@ -76,7 +77,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errUsers := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&users)
 	if errors.Is(errUsers, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE users (
-						id TEXT NOT NULL PRIMARY KEY, 
+						id TEXT PRIMARY KEY, 
 						name TEXT, 
 						photo TEXT);`
 		_, errUsers = db.Exec(sqlStmt)
@@ -90,9 +91,9 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errSingleChats := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='singleChats';`).Scan(&singleChats)
 	if errors.Is(errSingleChats, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE singleChats (
-						id INTEGER NOT NULL PRIMARY KEY, 
-						id_user_1 INTEGER,
-						id_user_2 INTEGER, 
+						id TEXT PRIMARY KEY, 
+						id_user_1 TEXT,
+						id_user_2 TEXT, 
 						FOREIGN KEY (id_user_1) REFERENCES users(id),
 						FOREIGN KEY (id_user_2) REFERENCES users(id),
 						UNIQUE(id_user_1, id_user_2));`
@@ -107,7 +108,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errGroups := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='groups';`).Scan(&groups)
 	if errors.Is(errGroups, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE groups (
-						id INTEGER NOT NULL PRIMARY KEY, 
+						id TEXT PRIMARY KEY, 
 						name TEXT, 
 						photo TEXT);`
 		_, errGroups = db.Exec(sqlStmt)
@@ -121,8 +122,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errUserGroups := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='userGroups';`).Scan(&userGroups)
 	if errors.Is(errUserGroups, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE userGroups (
-						id_user INTEGER NOT NULL, 
-						id_group INTEGER NOT NULL,
+						id_user TEXT NOT NULL, 
+						id_group TEXT NOT NULL,
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 						FOREIGN KEY (id_user) REFERENCES users(id),
 						FOREIGN KEY (id_group) REFERENCES groups(id),
@@ -138,13 +139,13 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errMessages := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='messages';`).Scan(&messages)
 	if errors.Is(errMessages, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE messages (
-						id INTEGER NOT NULL PRIMARY KEY, 
+						id TEXT PRIMARY KEY, 
 						text TEXT, 
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
 						state INTEGER, 
-						id_user INTEGER, 
-						id_single_chat INTEGER,
-						id_group INTEGER,
+						id_user TEXT, 
+						id_single_chat TEXT,
+						id_group TEXT,
 						FOREIGN KEY (id_user) REFERENCES users(id),
 						FOREIGN KEY (id_single_chat) REFERENCES singleChats(id),
 						FOREIGN KEY (id_group) REFERENCES groups(id));`
@@ -159,10 +160,10 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errComments := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='comments';`).Scan(&comments)
 	if errors.Is(errComments, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE comments (
-						id INTEGER NOT NULL PRIMARY KEY, 
+						id TEXT PRIMARY KEY, 
 						text TEXT, 
-						id_user INTEGER, 
-						id_message INTEGER,
+						id_user TEXT, 
+						id_message TEXT,
 						FOREIGN KEY (id_user) REFERENCES users(id),
 						FOREIGN KEY (id_message) REFERENCES messages(id));`
 		_, errComments = db.Exec(sqlStmt)
