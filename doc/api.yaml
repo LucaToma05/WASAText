@@ -345,7 +345,7 @@ paths:
              
                 
   /me/photo:
-    put:
+    patch:
       tags: ["user"]
       operationId: setMyPhoto
       summary: Update the user's photo
@@ -364,7 +364,7 @@ paths:
           content:
             application/json:
               schema: 
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/Photo'
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":

@@ -9,6 +9,15 @@ type UsernameQuery struct {
 	Username string
 }
 
+type PhotoRequest struct {
+	Photo string
+}
+
+type PhotoQuery struct {
+	ID    string
+	Photo string
+}
+
 type User struct {
 	ID    string
 	Name  string

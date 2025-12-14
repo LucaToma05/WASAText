@@ -47,6 +47,7 @@ type AppDatabase interface {
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
 	SetMyUserName(User structure.UsernameQuery) error
+	SetMyPhoto(Photo structure.PhotoQuery) error
 
 	Ping() error
 }
