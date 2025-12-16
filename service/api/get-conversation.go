@@ -1,0 +1,37 @@
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+)
+
+func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
+		return
+	}
+	userId, err := extractUserId(authHeader)
+	if err != nil {
+		http.Error(w, "Token extraction error", http.StatusInternalServerError)
+		return
+	}
+
+	chatId := ps.ByName("chat_id")
+	if chatId == "" {
+		http.Error(w, "Parameters extraction error", http.StatusInternalServerError)
+		return
+	}
+
+	conversation := rt.db.GetConversation(userId, chatId)
+	if conversation == nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(conversation)
+}

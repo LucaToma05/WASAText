@@ -49,6 +49,7 @@ type AppDatabase interface {
 	SetMyUserName(User structure.UsernameQuery) error
 	SetMyPhoto(Photo structure.PhotoQuery) error
 	GetMyConversations(id string) []structure.ChatQueryReturn
+	GetConversation(userId string, chatId string) []structure.Message
 
 	Ping() error
 }
