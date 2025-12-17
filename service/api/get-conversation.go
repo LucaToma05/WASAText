@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -19,8 +20,12 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	chatId := ps.ByName("chat_id")
-	if chatId == "" {
+	chatId, err := strconv.Atoi(ps.ByName("chat_id"))
+	if err != nil {
+		http.Error(w, "Conversion Error", http.StatusInternalServerError)
+		return
+	}
+	if chatId == 0 {
 		http.Error(w, "Parameters extraction error", http.StatusInternalServerError)
 		return
 	}

@@ -2,12 +2,16 @@ package api
 
 import "time"
 
+type LoginResponse struct {
+	ID int
+}
+
 type UsernameRequest struct {
 	Username string
 }
 
 type UsernameQuery struct {
-	ID       string
+	ID       int
 	Username string
 }
 
@@ -16,12 +20,12 @@ type PhotoRequest struct {
 }
 
 type PhotoQuery struct {
-	ID    string
+	ID    int
 	Photo string
 }
 
 type User struct {
-	ID    string
+	ID    int
 	Name  string
 	Photo string
 }
@@ -34,20 +38,22 @@ type ChatQueryReturn struct {
 }
 
 type Conversation struct {
-	ID       string
+	ID       int
 	Messages []Message
 }
 
 type Comment struct {
-	ID       string
+	ID       int
 	IdSender string
 	Emoji    string
 }
 
 type Message struct {
-	ID       string
+	ID       int
 	Text     string
 	Instant  time.Time
 	Comments []Comment
 	State    int
+	ChatId   int
+	IdSender int
 }

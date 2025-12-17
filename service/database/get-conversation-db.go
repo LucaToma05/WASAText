@@ -2,12 +2,21 @@ package database
 
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
-func (db *appdbimpl) GetConversation(userId string, chatId string) []structure.Message {
+func (db *appdbimpl) GetConversation(userId int, chatId int) []structure.Message {
 	rows, err := db.c.Query(`	SELECT messages.id, messages.text, messages.instant, messages.state
-								FROM singleChats
-								JOIN messages ON messages.id_single_chat = ? 
-								WHERE singleChats.id = ? AND (singleChats.id_user_1 = ? OR singleChats.id_user_2 = ?)
-								;`, chatId, chatId, userId, userId)
+								FROM messages 
+								JOIN conversations  ON messages.id_conversation = conversations.id
+								LEFT JOIN singleChats  ON singleChats.id = conversations.id
+								LEFT JOIN groups ON groups.id = conversations.id
+								LEFT JOIN userGroups  ON userGroups.id_group = groups.id
+								WHERE messages.id_conversation = ?
+								AND (
+									singleChats.id_user_1 = ?
+									OR singleChats.id_user_2 = ?
+									OR userGroups.id_user = ?
+								)
+								ORDER BY messages.instant;
+								`, chatId, userId, userId, userId)
 	if err != nil {
 		return nil
 	}
@@ -28,7 +37,7 @@ func (db *appdbimpl) GetConversation(userId string, chatId string) []structure.M
 	return messages
 }
 
-func (db *appdbimpl) getComment(messageId string) []structure.Comment {
+func (db *appdbimpl) getComment(messageId int) []structure.Comment {
 	rows, err := db.c.Query(`	SELECT id, text, id_user
 								FROM comments
 								WHERE id_message = ?

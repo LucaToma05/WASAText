@@ -2,47 +2,52 @@ package database
 
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
-func (db *appdbimpl) GetMyConversations(id string) []structure.ChatQueryReturn {
-	rows, err := db.c.Query(`	SELECT users.name, users.photo, messages.text, messages.instant
-								FROM singleChats
-						
-								JOIN users
-									ON users.id = CASE
-										WHEN singleChats.id_user_1 = ? THEN singleChats.id_user_2
-										ELSE singleChats.id_user_1
-									END
+func (db *appdbimpl) GetMyConversations(id int) []structure.ChatQueryReturn {
+	rows, err := db.c.Query(`
+								/* Nome chat */
+								CASE
+									WHEN g.id IS NOT NULL THEN g.name
+									ELSE u.name
+								END AS chat_name,
 
-								LEFT JOIN messages
-									ON messages.id_single_chat = singleChats.id
-								AND messages.instant = (
-										SELECT MAX(instant)
-										FROM messages
-										WHERE id_single_chat = singleChats.id
-								)
+								/* Foto chat */
+								CASE
+									WHEN g.id IS NOT NULL THEN g.photo
+									ELSE u.photo
+								END AS chat_photo,
 
-								WHERE singleChats.id_user_1 = ?
-								OR singleChats.id_user_2 = ?
+								m.text AS last_message,
+								m.instant AS last_message_time
 
-								UNION ALL
+							FROM conversations c
 
-								SELECT groups.name, groups.photo, messages.text, messages.instant
-								FROM groups
+							/* Chat singole */
+							LEFT JOIN singleChats sc ON sc.id = c.id
+							LEFT JOIN users u ON (
+								(u.id = sc.id_user_1 AND sc.id_user_2 = ?)
+							OR (u.id = sc.id_user_2 AND sc.id_user_1 = ?)
+							)
 
-								JOIN userGroups
-								ON userGroups.id.group = groups.id
+							/* Gruppi */
+							LEFT JOIN groups g ON g.id = c.id
+							LEFT JOIN userGroups ug ON ug.id_group = g.id AND ug.id_user = ?
 
-								LEFT JOIN messages
-								ON messages.id_group = groups.id
-								AND messages.instant = (
-									SELECT MAX(instant)
-									FROM messages
-									WHERE id_group = groups.id
-								)
+							/* Ultimo messaggio */
+							LEFT JOIN messages m ON m.id = (
+								SELECT m2.id
+								FROM messages m2
+								WHERE m2.id_conversation = c.id
+								ORDER BY m2.instant DESC
+								LIMIT 1
+							)
 
-								WHERE userGroups.id_user = ?
+							/* Chat dell'utente */
+							WHERE
+								sc.id_user_1 = ?
+							OR sc.id_user_2 = ?
+							OR ug.id_user = ?
 
-								ORDER BY messages.instant DESC
-								;`, id, id, id, id)
+							ORDER BY m.instant DESC;`, id, id, id, id, id, id)
 	if err != nil {
 		return nil
 	}

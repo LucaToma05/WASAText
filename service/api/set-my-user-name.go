@@ -20,12 +20,13 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	//Check username lenght
+	//Check username length
 	if len(req.Username) < 3 || len(req.Username) > 25 {
 		http.Error(w, "Invalid username length", http.StatusBadRequest)
 		return
 	}
 
+	//Check text pattern
 	match, _ := regexp.MatchString("^.*?$", req.Username)
 	if !match {
 		http.Error(w, "Invalid username pattern", http.StatusBadRequest)

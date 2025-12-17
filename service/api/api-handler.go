@@ -15,6 +15,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PATCH("/me/photo", rt.setMyPhoto)
 	rt.router.GET("/me/chats", rt.getMyConversations)
 	rt.router.GET("/me/chats/:chat_id/messages", rt.getConversation)
+	rt.router.POST("/me/chats/:chat_id/messages", rt.sendMessage)
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)

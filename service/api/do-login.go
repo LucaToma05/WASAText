@@ -3,10 +3,8 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
-	"math/rand"
 	"net/http"
 	"regexp"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
@@ -21,7 +19,6 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	var req structure.UsernameRequest
 
 	//Read body content
-
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -49,11 +46,8 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
 	//Creation new user
-	if id == "" {
-		newId := RandString()
-		id = newId
+	if id == 0 {
 		newUser := structure.User{
-			ID:    newId,
 			Name:  req.Username,
 			Photo: "",
 		}
@@ -62,6 +56,12 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+	}
+
+	id, err = rt.db.GetIdUserByUsername(req.Username)
+	if err != nil && err != sql.ErrNoRows {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -74,24 +74,11 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	risposta := structure.UsernameRequest{
-		Username: id,
+	risposta := structure.LoginResponse{
+		ID: id,
 	}
 	w.Header().Set("content-type", "application/json")
 	w.Header().Set("Authorization", tokenString)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(risposta)
-}
-
-func RandString() string {
-	rand.Seed(time.Now().UnixNano())
-	stringa := make([]byte, 10)
-	for i := range stringa {
-		if rand.Intn(2) == 0 {
-			stringa[i] = byte(rand.Intn(26) + 65)
-		} else {
-			stringa[i] = byte(rand.Intn(26) + 97)
-		}
-	}
-	return string(stringa)
 }
