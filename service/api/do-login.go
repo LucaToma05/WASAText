@@ -77,7 +77,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	risposta := structure.LoginResponse{
 		ID: id,
 	}
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Authorization", tokenString)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(risposta)

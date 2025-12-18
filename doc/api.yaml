@@ -469,7 +469,7 @@ paths:
       security:
         - bearerAuth: []
       
-          
+      
   /me/chats/{chat_id}/messages/{message_id}/forward:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'

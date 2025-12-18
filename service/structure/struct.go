@@ -57,3 +57,14 @@ type Message struct {
 	ChatId   int
 	IdSender int
 }
+
+type Group struct {
+	Name  string
+	Photo string
+}
+
+type GroupResponse struct {
+	ID    int
+	Name  string
+	Photo string
+}

@@ -53,6 +53,9 @@ type AppDatabase interface {
 	getComment(messageId int) []structure.Comment
 	SendMessage(message structure.Message) error
 	DeleteMessage(userId int, chatId int, messageId int) error
+	CreateConversation() (int, error)
+	CreateGroup(group structure.Group, idGroup int) error
+	AddToGroup(idGroup int, idUser int) error
 
 	Ping() error
 }
