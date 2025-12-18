@@ -52,6 +52,7 @@ type AppDatabase interface {
 	GetConversation(userId int, chatId int) []structure.Message
 	getComment(messageId int) []structure.Comment
 	SendMessage(message structure.Message) error
+	DeleteMessage(userId int, chatId int, messageId int) error
 
 	Ping() error
 }
