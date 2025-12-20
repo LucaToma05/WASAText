@@ -42,14 +42,26 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	userId, err := extractUserId(authHeader)
 	if err != nil {
 		http.Error(w, "Token extraction error", http.StatusInternalServerError)
+		return
 	}
 
 	// Add user id
 	req.ID = userId
 
+	// Check that the username doesn't exist
+	idCheck, err := rt.db.GetIdUserByUsername(req.Name)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	} else if idCheck != 0 {
+		http.Error(w, "Username already exists", http.StatusBadRequest)
+		return
+	}
+
 	err = rt.db.SetMyUserName(req)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	// Create the response
