@@ -46,6 +46,7 @@ type AppDatabase interface {
 
 	GetIdUserByUsername(username string) (int, error)
 	CreateUser(user structure.User) error
+
 	SetMyUserName(User structure.UsernameQuery) error
 	SetMyPhoto(Photo structure.PhotoQuery) error
 	GetMyConversations(id int) []structure.ChatQueryReturn
@@ -56,6 +57,7 @@ type AppDatabase interface {
 	CreateConversation() (int, error)
 	CreateGroup(group structure.Group, idGroup int) error
 	AddToGroup(idGroup int, idUser int) error
+	SetGroupName(name structure.GroupNameRequest, userId int, groupId int) error
 
 	Ping() error
 }

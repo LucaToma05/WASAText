@@ -17,6 +17,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/me/chats/:chat_id/messages", rt.getConversation)
 	rt.router.POST("/me/chats/:chat_id/messages", rt.sendMessage)
 	rt.router.DELETE("/me/chats/:chat_id/messages/:message_id", rt.deleteMessage)
+	rt.router.PATCH("/me/chats/groups/:group_id/name", rt.setGroupName)
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)

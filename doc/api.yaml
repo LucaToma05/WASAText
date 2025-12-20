@@ -257,6 +257,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
       
 security:
   - bearerAuth: []
@@ -298,6 +304,8 @@ paths:
                     type: string
                     pattern: '^.*?$'
                     example: "abcdef012345"
+        "500":
+          $ref: '#/components/responses/InternalServerError'
                 
   /me/username: 
     patch:

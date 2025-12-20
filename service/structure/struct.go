@@ -2,9 +2,17 @@ package api
 
 import "time"
 
+type User struct {
+	ID    int
+	Name  string
+	Photo string
+}
+
 type LoginResponse struct {
 	ID int
 }
+
+// ##################################
 
 type UsernameRequest struct {
 	Username string
@@ -21,12 +29,6 @@ type PhotoRequest struct {
 
 type PhotoQuery struct {
 	ID    int
-	Photo string
-}
-
-type User struct {
-	ID    int
-	Name  string
 	Photo string
 }
 
@@ -67,4 +69,8 @@ type GroupResponse struct {
 	ID    int
 	Name  string
 	Photo string
+}
+
+type GroupNameRequest struct {
+	Name string
 }
