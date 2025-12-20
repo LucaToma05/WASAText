@@ -12,6 +12,10 @@ type LoginResponse struct {
 	ID int
 }
 
+type UsernameResponse struct {
+	Name string
+}
+
 // ##################################
 
 type UsernameRequest struct {
