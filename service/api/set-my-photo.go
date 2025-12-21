@@ -10,7 +10,8 @@ import (
 )
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var req structure.PhotoRequest
+
+	var req structure.Photo
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -18,7 +19,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	if _, flag := url.ParseRequestURI(req.Photo); flag != nil {
+	if _, flag := url.ParseRequestURI(req.Url); flag != nil {
 		http.Error(w, "Invalid URI", http.StatusBadRequest)
 		return
 	}
@@ -31,16 +32,13 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	userId, err := extractUserId(authHeader)
 	if err != nil {
 		http.Error(w, "Token extraction error", http.StatusInternalServerError)
+		return
 	}
 
-	newPhoto := structure.PhotoQuery{
-		ID:    userId,
-		Photo: req.Photo,
-	}
-
-	err = rt.db.SetMyPhoto(newPhoto)
+	err = rt.db.SetMyPhoto(req, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -16,6 +16,10 @@ type UsernameResponse struct {
 	Name string
 }
 
+type Photo struct {
+	Url string
+}
+
 // ##################################
 
 type UsernameRequest struct {
@@ -25,10 +29,6 @@ type UsernameRequest struct {
 type UsernameQuery struct {
 	ID       int
 	Username string
-}
-
-type PhotoRequest struct {
-	Photo string
 }
 
 type PhotoQuery struct {
