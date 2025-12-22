@@ -20,6 +20,13 @@ type Photo struct {
 	Url string
 }
 
+type ChatPreview struct {
+	Name               string
+	Photo              string
+	LastMessageInstant time.Time
+	LastMessage        string
+}
+
 // ##################################
 
 type UsernameRequest struct {
@@ -34,13 +41,6 @@ type UsernameQuery struct {
 type PhotoQuery struct {
 	ID    int
 	Photo string
-}
-
-type ChatQueryReturn struct {
-	Name               string
-	Photo              string
-	LastMessageInstant time.Time
-	LastMessage        string
 }
 
 type Conversation struct {

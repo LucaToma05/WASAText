@@ -47,9 +47,9 @@ type AppDatabase interface {
 	GetIdUserByUsername(username string) (int, error)
 	CreateUser(user structure.User) error
 	SetMyUserName(User structure.User) error
-
 	SetMyPhoto(photo structure.Photo, userId int) error
-	GetMyConversations(id int) []structure.ChatQueryReturn
+	GetMyConversations(id int) ([]structure.ChatPreview, error)
+
 	GetConversation(userId int, chatId int) []structure.Message
 	getComment(messageId int) []structure.Comment
 	SendMessage(message structure.Message) error
@@ -163,7 +163,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	if errors.Is(errMessages, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE messages (
 						id INTEGER PRIMARY KEY, 
-						text INTEGER, 
+						text TEXT, 
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
 						state INTEGER, 
 						id_user INTEGER, 
