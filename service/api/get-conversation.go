@@ -30,8 +30,18 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	conversation := rt.db.GetConversation(userId, chatId)
-	if conversation == nil {
+	ok, err := rt.db.CheckConversation(chatId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Resource not found", http.StatusNotFound)
+		return
+	}
+
+	conversation, err := rt.db.GetConversation(userId, chatId)
+	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

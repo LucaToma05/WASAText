@@ -12,14 +12,17 @@ components:
       type: object
       properties:
         user_id: 
+          description: User identifier
           $ref: '#/components/schemas/General_id'
         name:
           type: string
+          description: User nickname
           example: "Luca"
           pattern: '^.*?$'
           minLength: 3
           maxLength: 25
         photo:
+          description: User profile photo
           $ref: '#/components/schemas/Photo'
       required:
       - user_id
@@ -28,9 +31,13 @@ components:
       description: User or group profile photo
       type: object
       properties:
-        photo:
+        url:
           type: string
+          description: URL of the photo
           format: uri
+          pattern: '^.*?$'
+          minLength: 1
+          maxLength: 1000
           example: "https://foto.com/foto.png"
           
     General_id:
@@ -41,18 +48,12 @@ components:
       maxLength: 16
       pattern: '^.*?$'
           
-    Object_id:
-      description: Response object with identifier
-      type: object
-      properties:
-        user_id:
-          $ref: '#/components/schemas/General_id'
-          
     Chat_list:
       description: Chat list in reverse chronological order
       type: array
       minItems: 0
       items:
+        description: Chat preview object showing name, photo, last message and its sending time
         $ref: '#/components/schemas/Chat_preview'
         
     Chat_preview:
@@ -61,50 +62,60 @@ components:
       type: object
       properties:
         id:
+          description: Chat identifier
           $ref: '#/components/schemas/General_id'
         name:
           type: string
+          description: Chat name (user nickname or group name)
           pattern: '^.*?$'
           minLength: 3
           maxLength: 25
           example: "Luca"
         photo:
+          description: Chat photo (user profile photo or group photo)
           $ref: '#/components/schemas/Photo'
-        last_message_instant:
-          type: string
-          format: date-time
         last_message:
+          description: Last message sent in the chat
           $ref: '#/components/schemas/Message'
         
     Message:
-      description: | 
-        Message object
+      description: Message object
       type: object
       properties: 
         id:
+          description: Message identifier
           $ref: '#/components/schemas/General_id'
         sender:
+          description: User who sent the message
           $ref: '#/components/schemas/User'
         text:
           type: string
+          description: Message content
           pattern: '^.*?$'
           example: "ciao"
           minLength: 1
+          maxLength: 1000
         instant:
           type: string
+          minLength: 1
+          maxLength: 100
+          description: Message sending time
           format: date-time
         comments:
           type: array
+          description: List of reactions to the message
           minItems: 0
+          maxItems: 100
           items:
             $ref: '#/components/schemas/Comment'
         state:
           type: integer
+          description: Message state (1 = received, 2 = read)
           enum: 
             - 1
             - 2
       required:
-       - text
+        - text
        
     
     Comment:
@@ -112,11 +123,14 @@ components:
       type: object
       properties:
         id: 
+          description: Reaction identifier
           $ref: '#/components/schemas/General_id'
         sender:
+          description: User who sent the reaction
           $ref: '#/components/schemas/User'
         emoji:
           type: string
+          description: Emoji used to react to the message
           enum:
           - 👍
           - 😂
@@ -130,55 +144,61 @@ components:
       type: array
       minItems: 0
       items:
+        description: Message object with sender, text, sending time and reactions
         $ref: '#/components/schemas/Message'
         
     Chat:
-      description: |
-        Generic chat object (single or group chat)
+      description: Generic chat object (single or group chat)
       type: object
       properties:
         id: 
+          description: Chat identifier
           $ref: '#/components/schemas/General_id'
         messages:
+          description: List of messages in reverse chronological order
           $ref: '#/components/schemas/Messages'
 
 
     Group:
-      description: |
-        Object that defines a group including id, name, list of participants and group photo (optional)
+      description: Object that defines a group including id, name, list of participants and group photo (optional)
       allOf:
       - $ref: '#/components/schemas/Chat'
       - type: object
         properties:
           name:
+            description: Group name
             type: string
             pattern: '^.*?$'
             example: "Class group"
             minLength: 3
-            maxLength: 50
+            maxLength: 25
           participants:
+            description: List of users in the group
             type: array
-            minItems: 0
+            minItems: 1
+            maxItems: 100
             items:
               $ref: '#/components/schemas/User'
           photo:
+            description: Group profile photo
             $ref: '#/components/schemas/Photo'
         required:
           - name
   
   
     Error:
-      description: |
-        Response subject for error codes
+      description: Response subject for error codes
       type: object
       properties:
         code:
+          description: Error code
           type: string
           pattern: '^.*?$'
           example: "Bad Request"
           minLength: 3
           maxLength: 50
         message:
+          description: Error message
           type: string
           pattern: '^.*?$'
           example: "Missing request"
@@ -189,11 +209,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
           
-    
-  
-  
   parameters:
     user_id_param:
       name: user_id
@@ -215,14 +231,6 @@ components:
       name: comment_id
       in: path
       description: Reaction identifier
-      required: true
-      schema:
-        $ref: '#/components/schemas/General_id'
-        
-    group_id_param:
-      name: group_id
-      in: path
-      description: Group identifier
       required: true
       schema:
         $ref: '#/components/schemas/General_id'
@@ -287,6 +295,7 @@ paths:
                 type: object
                 properties:
                   name:
+                    description: User nickname
                     type: string
                     example: Maria
                     pattern: '^.*?$'
@@ -300,10 +309,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  identifier:
-                    type: string
-                    pattern: '^.*?$'
-                    example: "abcdef012345"
+                  user_id:
+                    description: User identifier
+                    $ref: '#/components/schemas/General_id'
+        "400":
+          $ref: '#/components/responses/BadRequest'
         "500":
           $ref: '#/components/responses/InternalServerError'
                 
@@ -324,9 +334,10 @@ paths:
               type: object
               properties:
                 name:
+                  description: New nickname
                   type: string
                   minLength: 3
-                  maxLength: 16
+                  maxLength: 25
                   pattern: '^.*?$'
                   example: "New username"
       responses:
@@ -338,9 +349,10 @@ paths:
                 type: object
                 properties:
                   username:
+                    description: Updated nickname
                     type: string
                     minLength: 3
-                    maxLength: 16
+                    maxLength: 25
                     pattern: '^.*?$'
                     example: "New username"
         "400":
@@ -355,7 +367,7 @@ paths:
              
                 
   /me/photo:
-    patch:
+    put:
       tags: ["user"]
       operationId: setMyPhoto
       summary: Update the user's photo
@@ -385,7 +397,7 @@ paths:
         - bearerAuth: []
               
                     
-  /me/chats:
+  /chats:
     get:
       tags: ["chat"]
       operationId: getMyConversations
@@ -401,37 +413,80 @@ paths:
                 $ref: '#/components/schemas/Chat_list'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
-        "404":
-          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+    post:
+      tags: ["chat"]
+      operationId: createChat
+      summary: Create a chat
+      description: |
+        Create a chat with a specific user or group
+      requestBody:
+        description: User or group to create a chat with
+        required: true
+        content:
+          application/json:
+            schema:
+              description: User or group type of conversation
+              type: object
+              properties:
+                type:
+                  description: Type of conversation to create
+                  type: string 
+                  enum: ["user", "group"]
+                  example: "user"
+                participants:
+                  description: User or group to create a chat with
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    $ref: '#/components/schemas/General_id'
+      responses:
+        "201":
+          description: Chat created successfully and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "500":
           $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
   
                 
-  /me/chats/{chat_id}/messages:
+  /chats/{chat_id}/messages:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
     get:
       tags: ["message"]
       operationId: getConversation
-      summary:  Returns a chat
+      summary:  Returns the messages of a chat
       description: |
-        Returns the chat of a group or with a specific user
+        Returns the messages of a group or a chat with a specific user
       responses:
         "200":
-          description: Chat returned successfully
+          description: Messages returned successfully
           content:
             application/json:
               schema: 
-                $ref: '#/components/schemas/Chat'
+                $ref: '#/components/schemas/Messages'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
-          
+     
     post:
       tags: ["message"]
       operationId: sendMessage
@@ -439,15 +494,24 @@ paths:
       description: |
         Send a message in chat
       requestBody:
-        description: Messagge to send
+        description: Message to send
         required: true
         content: 
           application/json:
             schema:
-              $ref: '#/components/schemas/Message'
+              description: Message object to send
+              type: object
+              properties:
+                text:
+                  description: Message content
+                  type: string
+                  pattern: '^.*?$'
+                  example: "ciao"
+                  minLength: 1
+                  maxLength: 1000
       responses:
         "201":
-          description: Messagge sent successfully and returned
+          description: Message sent successfully and returned
           content:
             application/json:
               schema:
@@ -462,7 +526,7 @@ paths:
         - bearerAuth: []
           
           
-  /me/chats/{chat_id}/messages/{message_id}:
+  /chats/{chat_id}/messages/{message_id}:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
@@ -484,7 +548,7 @@ paths:
         - bearerAuth: []
       
       
-  /me/chats/{chat_id}/messages/{message_id}/forward:
+  /chats/{chat_id}/messages/{message_id}/forward:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
@@ -501,7 +565,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              type: object
+              properties:
+                user_id:
+                  description: User identifier to forward the message to
+                  $ref: '#/components/schemas/General_id'
+              required:
+                - user_id
       responses:
         "201":
           description: Message forwarded successfully and returned
@@ -519,7 +589,7 @@ paths:
         - bearerAuth: []
                 
                 
-  /me/chats/{chat_id}/messages/{message_id}/comments:
+  /chats/{chat_id}/messages/{message_id}/comments:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
@@ -555,7 +625,7 @@ paths:
         
                 
                 
-  /me/chats/{chat_id}/messages/{message_id}/comments/{comment_id}:
+  /chats/{chat_id}/messages/{message_id}/comments/{comment_id}:
     parameters:
       - $ref: '#/components/parameters/chat_id_param'
       - $ref: '#/components/parameters/message_id_param'
@@ -576,41 +646,10 @@ paths:
           $ref: '#/components/responses/NotFound'
       security:
         - bearerAuth: []
-          
-          
-  /me/chats/groups:
-    post:
-      tags: ["group"]
-      operationId: createGroup
-      summary: Create a group
-      description: |
-        Create a group with id, name and profile photo (optional)
-      requestBody:
-        description: Group object
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Group'
-      responses:
-        "201":
-          description: Group created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Group'
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "401":
-          $ref: '#/components/responses/UnauthorizedError'
-      security:
-        - bearerAuth: []
-          
   
-  /me/chats/groups/{group_id}/name:
+  /chats/{chat_id}/name:
     parameters:
-      - $ref: '#/components/parameters/group_id_param'
-    
+      - $ref: '#/components/parameters/chat_id_param'
     patch:
       tags: ["group"]
       operationId: setGroupName
@@ -625,10 +664,11 @@ paths:
             schema:
               type: object
               properties:
-                nome:
+                name:
+                  description: New group name
                   type: string
                   minLength: 3
-                  maxLength: 50
+                  maxLength: 25
                   pattern: '^.*?$'
                   example: "New group name"
       responses:
@@ -648,10 +688,9 @@ paths:
         - bearerAuth: []
                 
           
-  /me/chats/groups/{group_id}/photo:
+  /chats/{chat_id}/photo:
     parameters:
-      - $ref: '#/components/parameters/group_id_param'
-  
+      - $ref: '#/components/parameters/chat_id_param'
     put:
       tags: ["group"]
       operationId: setGroupPhoto
@@ -682,10 +721,9 @@ paths:
         - bearerAuth: []
 
           
-  /me/chats/groups/{group_id}/members:
+  /chats/{chat_id}/members:
     parameters:
-      - $ref: '#/components/parameters/group_id_param'
-
+      - $ref: '#/components/parameters/chat_id_param'
     post:
       tags: ["group"]
       operationId: addToGroup

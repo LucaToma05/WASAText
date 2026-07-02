@@ -14,8 +14,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PATCH("/me/username", rt.setMyUserName)
 	rt.router.PATCH("/me/photo", rt.setMyPhoto)
 	rt.router.GET("/me/chats", rt.getMyConversations)
-
 	rt.router.GET("/me/chats/:chat_id/messages", rt.getConversation)
+
 	rt.router.POST("/me/chats/:chat_id/messages", rt.sendMessage)
 	rt.router.DELETE("/me/chats/:chat_id/messages/:message_id", rt.deleteMessage)
 	rt.router.PATCH("/me/chats/groups/:group_id/name", rt.setGroupName)

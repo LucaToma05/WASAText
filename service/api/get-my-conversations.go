@@ -1,9 +1,7 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -23,10 +21,6 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 
 	chats, err := rt.db.GetMyConversations(userId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "No results found", http.StatusNotFound)
-			return
-		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
