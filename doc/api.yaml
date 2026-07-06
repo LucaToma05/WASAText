@@ -12,7 +12,6 @@ components:
       type: object
       properties:
         user_id: 
-          description: User identifier
           $ref: '#/components/schemas/General_id'
         name:
           type: string
@@ -22,7 +21,6 @@ components:
           minLength: 3
           maxLength: 25
         photo:
-          description: User profile photo
           $ref: '#/components/schemas/Photo'
       required:
       - user_id
@@ -34,7 +32,7 @@ components:
         url:
           type: string
           description: URL of the photo
-          format: uri
+          format: url
           pattern: '^.*?$'
           minLength: 1
           maxLength: 1000
@@ -50,11 +48,13 @@ components:
           
     Chat_list:
       description: Chat list in reverse chronological order
-      type: array
-      minItems: 0
-      items:
-        description: Chat preview object showing name, photo, last message and its sending time
-        $ref: '#/components/schemas/Chat_preview'
+      type: object
+      properties:
+        chats:
+          type: array
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/Chat_preview'
         
     Chat_preview:
       description: |
@@ -62,7 +62,6 @@ components:
       type: object
       properties:
         id:
-          description: Chat identifier
           $ref: '#/components/schemas/General_id'
         name:
           type: string
@@ -72,10 +71,8 @@ components:
           maxLength: 25
           example: "Luca"
         photo:
-          description: Chat photo (user profile photo or group photo)
           $ref: '#/components/schemas/Photo'
         last_message:
-          description: Last message sent in the chat
           $ref: '#/components/schemas/Message'
         
     Message:
@@ -83,10 +80,8 @@ components:
       type: object
       properties: 
         id:
-          description: Message identifier
           $ref: '#/components/schemas/General_id'
         sender:
-          description: User who sent the message
           $ref: '#/components/schemas/User'
         text:
           type: string
@@ -123,10 +118,8 @@ components:
       type: object
       properties:
         id: 
-          description: Reaction identifier
           $ref: '#/components/schemas/General_id'
         sender:
-          description: User who sent the reaction
           $ref: '#/components/schemas/User'
         emoji:
           type: string
@@ -144,7 +137,6 @@ components:
       type: array
       minItems: 0
       items:
-        description: Message object with sender, text, sending time and reactions
         $ref: '#/components/schemas/Message'
         
     Chat:
@@ -152,10 +144,8 @@ components:
       type: object
       properties:
         id: 
-          description: Chat identifier
           $ref: '#/components/schemas/General_id'
         messages:
-          description: List of messages in reverse chronological order
           $ref: '#/components/schemas/Messages'
 
 
@@ -180,7 +170,6 @@ components:
             items:
               $ref: '#/components/schemas/User'
           photo:
-            description: Group profile photo
             $ref: '#/components/schemas/Photo'
         required:
           - name
@@ -310,7 +299,6 @@ paths:
                 type: object
                 properties:
                   user_id:
-                    description: User identifier
                     $ref: '#/components/schemas/General_id'
         "400":
           $ref: '#/components/responses/BadRequest'
@@ -568,7 +556,6 @@ paths:
               type: object
               properties:
                 user_id:
-                  description: User identifier to forward the message to
                   $ref: '#/components/schemas/General_id'
               required:
                 - user_id
