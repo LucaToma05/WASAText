@@ -12,7 +12,7 @@ components:
       type: object
       properties:
         user_id: 
-          $ref: '#/components/schemas/General_id'
+          $ref: '#/components/schemas/GeneralId'
         name:
           type: string
           description: User nickname
@@ -38,7 +38,7 @@ components:
           maxLength: 1000
           example: "https://foto.com/foto.png"
           
-    General_id:
+    GeneralId:
       description: Defines the format for identifiers
       type: string
       example: "avfd457ud3"
@@ -46,7 +46,7 @@ components:
       maxLength: 16
       pattern: '^.*?$'
           
-    Chat_list:
+    ChatList:
       description: Chat list in reverse chronological order
       type: object
       properties:
@@ -54,15 +54,15 @@ components:
           type: array
           minItems: 0
           items:
-            $ref: '#/components/schemas/Chat_preview'
+            $ref: '#/components/schemas/ChatPreview'
         
-    Chat_preview:
+    ChatPreview:
       description: |
         Chat preview object showing name, photo, last message and its sending time
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/General_id'
+          $ref: '#/components/schemas/GeneralId'
         name:
           type: string
           description: Chat name (user nickname or group name)
@@ -80,7 +80,7 @@ components:
       type: object
       properties: 
         id:
-          $ref: '#/components/schemas/General_id'
+          $ref: '#/components/schemas/GeneralId'
         sender:
           $ref: '#/components/schemas/User'
         text:
@@ -118,7 +118,7 @@ components:
       type: object
       properties:
         id: 
-          $ref: '#/components/schemas/General_id'
+          $ref: '#/components/schemas/GeneralId'
         sender:
           $ref: '#/components/schemas/User'
         emoji:
@@ -134,17 +134,20 @@ components:
     
     Messages:
       description: List of messages in reverse chronological order
-      type: array
-      minItems: 0
-      items:
-        $ref: '#/components/schemas/Message'
+      type: object
+      properties:
+        messages:
+          type: array
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/Message'
         
     Chat:
       description: Generic chat object (single or group chat)
       type: object
       properties:
         id: 
-          $ref: '#/components/schemas/General_id'
+          $ref: '#/components/schemas/GeneralId'
         messages:
           $ref: '#/components/schemas/Messages'
 
@@ -206,7 +209,7 @@ components:
       description: User identifier
       required: true
       schema: 
-        $ref: '#/components/schemas/General_id'
+        $ref: '#/components/schemas/GeneralId'
         
     message_id_param:
       name: message_id
@@ -214,7 +217,7 @@ components:
       description: Message identifier
       required: true
       schema:
-        $ref: '#/components/schemas/General_id'
+        $ref: '#/components/schemas/GeneralId'
     
     comment_id_param:
       name: comment_id
@@ -222,7 +225,7 @@ components:
       description: Reaction identifier
       required: true
       schema:
-        $ref: '#/components/schemas/General_id'
+        $ref: '#/components/schemas/GeneralId'
     
     chat_id_param:
       name: chat_id
@@ -230,7 +233,7 @@ components:
       description: Chat identifier
       required: true
       schema: 
-        $ref: '#/components/schemas/General_id'
+        $ref: '#/components/schemas/GeneralId'
         
         
   responses:
@@ -263,6 +266,20 @@ components:
       
 security:
   - bearerAuth: []
+
+tags:
+  - name: "login"
+    description: "Login operations"
+  - name: "user"
+    description: "User operations"
+  - name: "chat"
+    description: "Chat operations"
+  - name: "message"
+    description: "Message operations"
+  - name: "comment"
+    description: "Comment operations"
+  - name: "group"
+    description: "Group operations"
 
 
 paths:
@@ -299,7 +316,7 @@ paths:
                 type: object
                 properties:
                   user_id:
-                    $ref: '#/components/schemas/General_id'
+                    $ref: '#/components/schemas/GeneralId'
         "400":
           $ref: '#/components/responses/BadRequest'
         "500":
@@ -398,7 +415,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Chat_list'
+                $ref: '#/components/schemas/ChatList'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
         "500":
@@ -432,7 +449,7 @@ paths:
                   minItems: 1
                   maxItems: 100
                   items:
-                    $ref: '#/components/schemas/General_id'
+                    $ref: '#/components/schemas/GeneralId'
       responses:
         "201":
           description: Chat created successfully and returned
@@ -556,7 +573,7 @@ paths:
               type: object
               properties:
                 user_id:
-                  $ref: '#/components/schemas/General_id'
+                  $ref: '#/components/schemas/GeneralId'
               required:
                 - user_id
       responses:
