@@ -11,7 +11,7 @@ components:
       description: User object
       type: object
       properties:
-        user_id: 
+        userId: 
           $ref: '#/components/schemas/GeneralId'
         name:
           type: string
@@ -23,7 +23,7 @@ components:
         photo:
           $ref: '#/components/schemas/Photo'
       required:
-      - user_id
+      - userId
     
     Photo:
       description: User or group profile photo
@@ -51,8 +51,10 @@ components:
       type: object
       properties:
         chats:
+        description: List of chats preview
           type: array
           minItems: 0
+          maxItems: 1000
           items:
             $ref: '#/components/schemas/ChatPreview'
         
@@ -72,7 +74,7 @@ components:
           example: "Luca"
         photo:
           $ref: '#/components/schemas/Photo'
-        last_message:
+        lastMessage:
           $ref: '#/components/schemas/Message'
         
     Message:
@@ -124,11 +126,10 @@ components:
         emoji:
           type: string
           description: Emoji used to react to the message
-          enum:
-          - 👍
-          - 😂
-          - ❤️
-          - 😡
+          example: "👍"
+          pattern: '^[^\\s]{1,10}$'
+          minLength: 1
+          maxLength: 10
       required: 
         - emoji
     
@@ -203,32 +204,32 @@ components:
       scheme: bearer
           
   parameters:
-    user_id_param:
-      name: user_id
+    userIdParam:
+      name: userId
       in: path
       description: User identifier
       required: true
       schema: 
         $ref: '#/components/schemas/GeneralId'
         
-    message_id_param:
-      name: message_id
+    messageIdParam:
+      name: messageId
       in: path
       description: Message identifier
       required: true
       schema:
         $ref: '#/components/schemas/GeneralId'
     
-    comment_id_param:
-      name: comment_id
+    commentIdParam:
+      name: commentId
       in: path
       description: Reaction identifier
       required: true
       schema:
         $ref: '#/components/schemas/GeneralId'
     
-    chat_id_param:
-      name: chat_id
+    chatIdParam:
+      name: chatId
       in: path
       description: Chat identifier
       required: true
@@ -315,7 +316,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  user_id:
+                  userId:
                     $ref: '#/components/schemas/GeneralId'
         "400":
           $ref: '#/components/responses/BadRequest'
@@ -467,9 +468,9 @@ paths:
         - bearerAuth: []
   
                 
-  /chats/{chat_id}/messages:
+  /chats/{chatId}/messages:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
+      - $ref: '#/components/parameters/chatIdParam'
     get:
       tags: ["message"]
       operationId: getConversation
@@ -531,11 +532,11 @@ paths:
         - bearerAuth: []
           
           
-  /chats/{chat_id}/messages/{message_id}:
+  /chats/{chatId}/messages/{messageId}:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
-      - $ref: '#/components/parameters/message_id_param'
-      
+      - $ref: '#/components/parameters/chatIdParam'
+      - $ref: '#/components/parameters/messageIdParam'
+
     delete:
       tags: ["message"]
       operationId: deleteMessage
@@ -553,11 +554,11 @@ paths:
         - bearerAuth: []
       
       
-  /chats/{chat_id}/messages/{message_id}/forward:
+  /chats/{chatId}/messages/{messageId}/forward:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
-      - $ref: '#/components/parameters/message_id_param'
-    
+      - $ref: '#/components/parameters/chatIdParam'
+      - $ref: '#/components/parameters/messageIdParam'
+
     post:
       tags: ["message"]
       operationId: forwardMessage
@@ -572,10 +573,10 @@ paths:
             schema:
               type: object
               properties:
-                user_id:
+                userId:
                   $ref: '#/components/schemas/GeneralId'
               required:
-                - user_id
+                - userId
       responses:
         "201":
           description: Message forwarded successfully and returned
@@ -593,11 +594,11 @@ paths:
         - bearerAuth: []
                 
                 
-  /chats/{chat_id}/messages/{message_id}/comments:
+  /chats/{chatId}/messages/{messageId}/comments:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
-      - $ref: '#/components/parameters/message_id_param'
-    
+      - $ref: '#/components/parameters/chatIdParam'
+      - $ref: '#/components/parameters/messageIdParam'
+
     post:
       tags: ["comment"]
       operationId: commentMessage
@@ -629,12 +630,12 @@ paths:
         
                 
                 
-  /chats/{chat_id}/messages/{message_id}/comments/{comment_id}:
+  /chats/{chatId}/messages/{messageId}/comments/{commentId}:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
-      - $ref: '#/components/parameters/message_id_param'
-      - $ref: '#/components/parameters/comment_id_param'
-      
+      - $ref: '#/components/parameters/chatIdParam'
+      - $ref: '#/components/parameters/messageIdParam'
+      - $ref: '#/components/parameters/commentIdParam'
+
     delete:
       tags: ["comment"]
       operationId: uncommentMessage
@@ -651,9 +652,9 @@ paths:
       security:
         - bearerAuth: []
   
-  /chats/{chat_id}/name:
+  /chats/{chatId}/name:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
+      - $ref: '#/components/parameters/chatIdParam'
     patch:
       tags: ["group"]
       operationId: setGroupName
@@ -692,9 +693,9 @@ paths:
         - bearerAuth: []
                 
           
-  /chats/{chat_id}/photo:
+  /chats/{chatId}/photo:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
+      - $ref: '#/components/parameters/chatIdParam'
     put:
       tags: ["group"]
       operationId: setGroupPhoto
@@ -725,9 +726,9 @@ paths:
         - bearerAuth: []
 
           
-  /chats/{chat_id}/members:
+  /chats/{chatId}/members:
     parameters:
-      - $ref: '#/components/parameters/chat_id_param'
+      - $ref: '#/components/parameters/chatIdParam'
     post:
       tags: ["group"]
       operationId: addToGroup
