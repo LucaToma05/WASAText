@@ -51,7 +51,7 @@ components:
       type: object
       properties:
         chats:
-        description: List of chats preview
+          description: List of chats preview
           type: array
           minItems: 0
           maxItems: 1000
