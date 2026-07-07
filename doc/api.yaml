@@ -139,6 +139,7 @@ components:
       properties:
         messages:
           type: array
+          description: List of messages in reverse chronological order
           minItems: 0
           items:
             $ref: '#/components/schemas/Message'
@@ -204,14 +205,6 @@ components:
       scheme: bearer
           
   parameters:
-    userIdParam:
-      name: userId
-      in: path
-      description: User identifier
-      required: true
-      schema: 
-        $ref: '#/components/schemas/GeneralId'
-        
     messageIdParam:
       name: messageId
       in: path
