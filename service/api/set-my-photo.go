@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	structure "github.com/LucaToma05/WASAText/service/structure"
 	"github.com/julienschmidt/httprouter"
 )
 
-func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 
 	var req structure.Photo
 

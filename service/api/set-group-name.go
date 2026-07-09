@@ -6,11 +6,12 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	structure "github.com/LucaToma05/WASAText/service/structure"
 	"github.com/julienschmidt/httprouter"
 )
 
-func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	var req structure.GroupNameRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)

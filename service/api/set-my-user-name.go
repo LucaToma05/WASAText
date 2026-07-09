@@ -7,10 +7,11 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
-func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 
 	var req structure.User
 

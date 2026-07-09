@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
@@ -15,7 +16,7 @@ var secretKey = []byte("a5jvs496djd15yj")
 
 // If the user does not exist, it will be created, and an identifier is returned.
 // If the user exists, the user identifier is returned
-func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// defines the User struct
 	var req structure.User
 
