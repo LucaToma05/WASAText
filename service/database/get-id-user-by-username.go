@@ -6,16 +6,16 @@ import (
 )
 
 // If the user is not found, return id 0
-func (db *appdbimpl) GetIdUserByUsername(username string) (int, error) {
-	var id int
+func (db *appdbimpl) GetIdUserByUsername(username string) (string, error) {
+	var id string
 
 	err := db.c.QueryRow("SELECT id FROM users WHERE name=?", username).Scan(&id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
+			return "", nil
 		}
-		return 0, err
+		return "", err
 	}
 	return id, nil
 }

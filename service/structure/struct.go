@@ -3,13 +3,13 @@ package api
 import "time"
 
 type User struct {
-	ID    int
-	Name  string
-	Photo string
+	UserId string `json:"userId"`
+	Name   string `json:"name"`
+	Photo  string `json:"photo"`
 }
 
 type LoginResponse struct {
-	ID int
+	UserId string
 }
 
 type UsernameResponse struct {

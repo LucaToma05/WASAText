@@ -44,7 +44,7 @@ type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
 
-	GetIdUserByUsername(username string) (int, error)
+	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
 	SetMyUserName(User structure.User) error
 	SetMyPhoto(photo structure.Photo, userId int) error
@@ -87,7 +87,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errUsers := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&users)
 	if errors.Is(errUsers, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE users (
-						id TEXT PRIMARY KEY, 
+						userId TEXT PRIMARY KEY, 
 						name TEXT NOT NULL, 
 						photo TEXT);`
 		_, errUsers = db.Exec(sqlStmt)
@@ -119,7 +119,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 						chatId TEXT NOT NULL,
 						userId TEXT NOT NULL,
 						FOREIGN KEY (chatId) REFERENCES chats(id),
-						FOREIGN KEY (userId) REFERENCES users(id),
+						FOREIGN KEY (userId) REFERENCES users(userId),
 						PRIMARY KEY (chatId, userId)
 					);`
 		_, errConv = db.Exec(sqlStmt)

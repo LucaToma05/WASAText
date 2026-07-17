@@ -1,18 +1,16 @@
 package api
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"net/http"
 	"regexp"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	structure "github.com/LucaToma05/WASAText/service/structure"
 )
-
-var secretKey = []byte("a5jvs496djd15yj")
 
 // If the user does not exist, it will be created, and an identifier is returned.
 // If the user exists, the user identifier is returned
@@ -45,8 +43,16 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	} else if id == 0 {
+	} else if id == "" {
+		// Generate ID
+		id, err = generateId()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
 		// Create the user
+		req.UserId = id
 		err := rt.db.CreateUser(req)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -54,27 +60,28 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		}
 	}
 
-	id, err = rt.db.GetIdUserByUsername(req.Name)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": id,
-	})
-
-	tokenString, err := claims.SignedString(secretKey)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	risposta := structure.LoginResponse{
-		ID: id,
+		UserId: id,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Authorization", tokenString)
+	w.Header().Set("Authorization", "Bearer "+id)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(risposta)
+}
+
+func generateId() (string, error) {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const length = 16
+
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	for i := 0; i < length; i++ {
+		b[i] = letters[int(b[i])%len(letters)]
+	}
+
+	return string(b), nil
 }

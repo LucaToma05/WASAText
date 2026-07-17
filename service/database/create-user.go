@@ -4,6 +4,6 @@ package database
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
 func (db *appdbimpl) CreateUser(user structure.User) error {
-	_, err := db.c.Exec("INSERT INTO users (name) VALUES (?)", user.Name)
+	_, err := db.c.Exec("INSERT INTO users (userId, name) VALUES (?, ?)", user.UserId, user.Name)
 	return err
 }
