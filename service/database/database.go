@@ -48,7 +48,7 @@ type AppDatabase interface {
 	CreateUser(user structure.User) error
 	SetMyUserName(User structure.User) error
 	SetMyPhoto(user structure.User) error
-	GetMyConversations(id int) ([]structure.ChatPreview, error)
+	GetMyConversations(id string) ([]structure.ChatPreview, error)
 	GetConversation(userId int, chatId int) ([]structure.Message, error)
 	getComment(messageId int) ([]structure.Comment, error)
 	CheckConversation(chatId int) (bool, error)

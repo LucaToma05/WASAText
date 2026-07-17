@@ -9,14 +9,9 @@ import (
 )
 
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	userId := ctx.UserId
+	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
-		return
-	}
-	userId, err := extractUserId(authHeader)
-	if err != nil {
-		http.Error(w, "Token extraction error", http.StatusInternalServerError)
 		return
 	}
 

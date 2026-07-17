@@ -25,6 +25,7 @@ type Photo struct {
 }
 
 type ChatPreview struct {
+	ChatId             string
 	Name               string
 	Photo              string
 	LastMessageInstant time.Time
