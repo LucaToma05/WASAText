@@ -47,7 +47,7 @@ type AppDatabase interface {
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
 	SetMyUserName(User structure.User) error
-	SetMyPhoto(photo structure.Photo, userId int) error
+	SetMyPhoto(user structure.User) error
 	GetMyConversations(id int) ([]structure.ChatPreview, error)
 	GetConversation(userId int, chatId int) ([]structure.Message, error)
 	getComment(messageId int) ([]structure.Comment, error)
@@ -139,7 +139,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 						state INTEGER NOT NULL, 
 						userId TEXT, 
 						chatId TEXT,
-						FOREIGN KEY (userId) REFERENCES users(id),
+						FOREIGN KEY (userId) REFERENCES users(userId),
 						FOREIGN KEY (chatId) REFERENCES chats(id));`
 		_, errMessages = db.Exec(sqlStmt)
 		if errMessages != nil {
@@ -156,7 +156,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 						emoji TEXT NOT NULL, 
 						userId TEXT, 
 						messageId TEXT,
-						FOREIGN KEY (userId) REFERENCES users(id),
+						FOREIGN KEY (userId) REFERENCES users(userId),
 						FOREIGN KEY (messageId) REFERENCES messages(id));`
 		_, errComments = db.Exec(sqlStmt)
 		if errComments != nil {

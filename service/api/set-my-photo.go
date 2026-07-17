@@ -25,18 +25,18 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	userId := ctx.UserId
+	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
-	userId, err := extractUserId(authHeader)
-	if err != nil {
-		http.Error(w, "Token extraction error", http.StatusInternalServerError)
-		return
+
+	user := structure.User{
+		UserId: userId,
+		Photo:  req.Url,
 	}
 
-	err = rt.db.SetMyPhoto(req, userId)
+	err = rt.db.SetMyPhoto(user)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
