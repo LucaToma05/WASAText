@@ -150,35 +150,27 @@ components:
       properties:
         id: 
           $ref: '#/components/schemas/GeneralId'
+        isGroup:
+          type: boolean
+          description: True if the chat is a group chat, false if it is a single chat
+        name:
+          type: string
+          description: Chat name (user nickname or group name)
+          pattern: '^.*?$'
+          minLength: 3
+          maxLength: 25
+          example: "Luca"
+        photo:
+          $ref: '#/components/schemas/Photo'
+        participants:
+          type: array
+          description: List of participants in the chat
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/User'
         messages:
           $ref: '#/components/schemas/Messages'
-
-
-    Group:
-      description: Object that defines a group including id, name, list of participants and group photo (optional)
-      allOf:
-      - $ref: '#/components/schemas/Chat'
-      - type: object
-        properties:
-          name:
-            description: Group name
-            type: string
-            pattern: '^.*?$'
-            example: "Class group"
-            minLength: 3
-            maxLength: 25
-          participants:
-            description: List of users in the group
-            type: array
-            minItems: 1
-            maxItems: 100
-            items:
-              $ref: '#/components/schemas/User'
-          photo:
-            $ref: '#/components/schemas/Photo'
-        required:
-          - name
-  
   
     Error:
       description: Response subject for error codes
@@ -433,10 +425,8 @@ paths:
               type: object
               properties:
                 type:
-                  description: Type of conversation to create
-                  type: string 
-                  enum: ["user", "group"]
-                  example: "user"
+                  description: Type of conversation to create (true for group, false for user)
+                  type: boolean 
                 participants:
                   description: User or group to create a chat with
                   type: array
@@ -444,6 +434,13 @@ paths:
                   maxItems: 100
                   items:
                     $ref: '#/components/schemas/GeneralId'
+                name:
+                  description: Group name (only for group chats)
+                  type: string
+                  pattern: '^.*?$'
+                  minLength: 3
+                  maxLength: 25
+                  example: "Group name"
       responses:
         "201":
           description: Chat created successfully and returned
@@ -675,7 +672,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Group'
+                $ref: '#/components/schemas/Chat'
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":

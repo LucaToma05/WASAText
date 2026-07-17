@@ -32,6 +32,21 @@ type ChatPreview struct {
 	LastMessage        string
 }
 
+type InfoChat struct {
+	IsGroup      bool
+	Name         string
+	Participants []User
+}
+
+type Chat struct {
+	ChatId       string
+	IsGroup      bool
+	Name         string
+	Photo        string
+	Participants []User
+	Messages     []Message
+}
+
 // ##################################
 
 type UsernameRequest struct {

@@ -46,6 +46,9 @@ type AppDatabase interface {
 
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
+
+	CreateChat(infoChat structure.InfoChat, id string) error
+
 	SetMyUserName(User structure.User) error
 	SetMyPhoto(user structure.User) error
 	GetMyConversations(id string) ([]structure.ChatPreview, error)
@@ -55,8 +58,6 @@ type AppDatabase interface {
 
 	SendMessage(message structure.Message) error
 	DeleteMessage(userId int, chatId int, messageId int) error
-	CreateConversation() (int, error)
-	CreateGroup(group structure.Group, idGroup int) error
 	AddToGroup(idGroup int, idUser int) error
 	SetGroupName(name structure.GroupNameRequest, userId int, groupId int) error
 
