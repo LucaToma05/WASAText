@@ -2,6 +2,10 @@ package api
 
 import "time"
 
+type LoginRequest struct {
+	Name string `json:"name"`
+}
+
 type User struct {
 	UserId string `json:"userId"`
 	Name   string `json:"name"`
@@ -12,8 +16,8 @@ type LoginResponse struct {
 	UserId string
 }
 
-type UsernameResponse struct {
-	Name string
+type NewUsername struct {
+	Name string `json:"name"`
 }
 
 type Photo struct {

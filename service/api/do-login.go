@@ -16,7 +16,7 @@ import (
 // If the user exists, the user identifier is returned
 func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// defines the User struct
-	var req structure.User
+	var req structure.LoginRequest
 
 	// Read body content
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -52,8 +52,10 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		}
 
 		// Create the user
-		req.UserId = id
-		err := rt.db.CreateUser(req)
+		var user structure.User
+		user.Name = req.Name
+		user.UserId = id
+		err = rt.db.CreateUser(user)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
