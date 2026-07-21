@@ -8,5 +8,29 @@ import (
 )
 
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	//TODO
+	userId := ctx.UserId
+	if userId == "" {
+		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
+		return
+	}
+
+	chatId := ps.ByName("chatId")
+	if chatId == "" {
+		http.Error(w, "Parameters extraction error", http.StatusBadRequest)
+		return
+	}
+
+	flag, err := rt.db.IsGroup(chatId)
+	if !flag {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = rt.db.LeaveGroup(chatId, userId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

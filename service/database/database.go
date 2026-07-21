@@ -66,6 +66,7 @@ type AppDatabase interface {
 	SetGroupPhoto(groupPhoto structure.GroupPhotoRequest, chatId string) error
 
 	AddToGroup(req structure.AddToGroupRequest, chatId string) error
+	LeaveGroup(chatId string, userId string) error
 
 	Ping() error
 }
