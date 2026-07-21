@@ -1,10 +1,10 @@
 package database
 
 import (
-	"time"
+	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
-func (db *appdbimpl) AddToGroup(idGroup int, idUser int) error {
-	_, err := db.c.Exec("INSERT INTO userGroups (id_user, id_group, instant) VALUES (?,?,?);", idUser, idGroup, time.Now())
+func (db *appdbimpl) AddToGroup(req structure.AddToGroupRequest, chatId string) error {
+	_, err := db.c.Exec("INSERT INTO userGroups (chatId, userId) VALUES (?,?);", chatId, req.UserId)
 	return err
 }

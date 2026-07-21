@@ -119,3 +119,7 @@ type GroupNameRequest struct {
 type GroupPhotoRequest struct {
 	Url string
 }
+
+type AddToGroupRequest struct {
+	UserId string
+}

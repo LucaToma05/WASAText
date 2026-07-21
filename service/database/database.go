@@ -62,9 +62,10 @@ type AppDatabase interface {
 
 	SendMessage(message structure.Message) error
 	DeleteMessage(chatId string, messageId string) error
-	AddToGroup(idGroup int, idUser int) error
 	SetGroupName(name structure.GroupNameRequest, chatId string) error
 	SetGroupPhoto(groupPhoto structure.GroupPhotoRequest, chatId string) error
+
+	AddToGroup(req structure.AddToGroupRequest, chatId string) error
 
 	Ping() error
 }

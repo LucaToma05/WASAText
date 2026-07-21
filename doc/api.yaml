@@ -731,14 +731,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/GeneralId'
       responses:
         "201":
           description: User added to group successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/GeneralId'
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
