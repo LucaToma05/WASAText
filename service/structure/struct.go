@@ -51,6 +51,18 @@ type ForwardMessageRequest struct {
 	UserID string
 }
 
+type CommentRequest struct {
+	SenderId string
+	Emoji    string
+}
+
+type Comment struct {
+	ID        string
+	IdSender  string
+	Emoji     string
+	MessageId string
+}
+
 // ##################################
 
 type UsernameRequest struct {
@@ -70,12 +82,6 @@ type PhotoQuery struct {
 type Conversation struct {
 	ID       int
 	Messages []Message
-}
-
-type Comment struct {
-	ID       string
-	IdSender string
-	Emoji    string
 }
 
 type Message struct {

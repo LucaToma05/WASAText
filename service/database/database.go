@@ -56,6 +56,7 @@ type AppDatabase interface {
 	GetMessage(messageId string) (string, error)
 	getComment(messageId string) ([]structure.Comment, error)
 	CheckConversation(chatId string, userId string) (bool, error)
+	CommentMessage(comment structure.Comment) error
 
 	SendMessage(message structure.Message) error
 	DeleteMessage(chatId string, messageId string) error
