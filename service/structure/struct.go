@@ -115,3 +115,7 @@ type GroupResponse struct {
 type GroupNameRequest struct {
 	Name string
 }
+
+type GroupPhotoRequest struct {
+	Url string
+}

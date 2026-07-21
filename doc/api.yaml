@@ -672,7 +672,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Chat'
+                $ref: '#/components/schemas/Chat' #Cambialo e ritorna il nuovo nome
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
