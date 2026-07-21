@@ -58,11 +58,12 @@ type AppDatabase interface {
 	CheckConversation(chatId string, userId string) (bool, error)
 	CommentMessage(comment structure.Comment) error
 	UncommentMessage(messageId string, commentId string, userId string) error
+	IsGroup(chatId string) (bool, error)
 
 	SendMessage(message structure.Message) error
 	DeleteMessage(chatId string, messageId string) error
 	AddToGroup(idGroup int, idUser int) error
-	SetGroupName(name structure.GroupNameRequest, userId int, groupId int) error
+	SetGroupName(name structure.GroupNameRequest, chatId string) error
 
 	Ping() error
 }

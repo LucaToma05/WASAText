@@ -2,13 +2,10 @@ package database
 
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
-func (db *appdbimpl) SetGroupName(name structure.GroupNameRequest, userId int, groupId int) error {
-	_, err := db.c.Exec(`	UPDATE groups 
+func (db *appdbimpl) SetGroupName(groupName structure.GroupNameRequest, chatId string) error {
+	_, err := db.c.Exec(`	UPDATE chats 
 							SET name = ? 
 							WHERE id = ? 
-							AND EXISTS (
-								SELECT 1
-								FROM userGrops
-								WHERE id_group = ? AND id_user = ?)`, name.Name, groupId, groupId, userId)
+							`, groupName.Name, chatId)
 	return err
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
-	"strconv"
 
 	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	structure "github.com/LucaToma05/WASAText/service/structure"
@@ -20,7 +19,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	if len(req.Name) < 3 || len(req.Name) > 50 {
+	if len(req.Name) < 3 || len(req.Name) > 25 {
 		http.Error(w, "Invalid name group length", http.StatusBadRequest)
 		return
 	}
@@ -31,32 +30,31 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	userId := ctx.UserId
+	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
-	userId, err := extractUserId(authHeader)
-	if err != nil {
-		http.Error(w, "Token extraction error", http.StatusInternalServerError)
-	}
 
-	groupId, flag := strconv.Atoi(ps.ByName("group_id"))
-	if flag != nil {
-		http.Error(w, "Conversion Error", http.StatusInternalServerError)
-		return
-	}
-	if groupId == 0 {
+	chatId := ps.ByName("chatId")
+	if chatId == "" {
 		http.Error(w, "Parameters extraction error", http.StatusInternalServerError)
 		return
 	}
 
-	err = rt.db.SetGroupName(req, userId, groupId)
+	flag, err := rt.db.IsGroup(chatId)
+	if !flag {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = rt.db.SetGroupName(req, chatId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	//Ritorna il gruppo
-	//!!!
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(req)
 }
