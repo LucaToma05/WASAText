@@ -69,19 +69,20 @@ type Conversation struct {
 }
 
 type Comment struct {
-	ID       int
+	ID       string
 	IdSender string
 	Emoji    string
 }
 
 type Message struct {
-	ID       int
-	Text     string
-	Instant  time.Time
-	Comments []Comment
-	State    int
-	ChatId   int
-	IdSender int
+	ID          string
+	Text        string
+	Instant     time.Time
+	Comments    []Comment
+	State       int
+	IdSender    string
+	NameSender  string
+	PhotoSender string
 }
 
 type Group struct {

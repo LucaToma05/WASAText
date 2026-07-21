@@ -2,30 +2,30 @@ package database
 
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
-func (db *appdbimpl) GetConversation(userId int, chatId int) ([]structure.Message, error) {
-	rows, err := db.c.Query(`	SELECT messages.id, messages.text, messages.instant, messages.state
-								FROM messages 
-								JOIN conversations  ON messages.id_conversation = conversations.id
-								LEFT JOIN singleChats  ON singleChats.id = conversations.id
-								LEFT JOIN groups ON groups.id = conversations.id
-								LEFT JOIN userGroups  ON userGroups.id_group = groups.id
-								WHERE messages.id_conversation = ?
-								AND (
-									singleChats.id_user_1 = ?
-									OR singleChats.id_user_2 = ?
-									OR userGroups.id_user = ?
-								)
-								ORDER BY messages.instant;
-								`, chatId, userId, userId, userId)
+func (db *appdbimpl) GetConversation(chatId string) ([]structure.Message, error) {
+	rows, err := db.c.Query(`	SELECT messages.id, 
+									messages.text,
+									messages.instant,
+									messages.state,
+									messages.userId,
+									users.name,
+									users.photo
+								FROM messages
+								JOIN users ON messages.userId = users.userId
+								WHERE messages.chatId = ?
+								ORDER BY messages.instant DESC;
+								`, chatId)
 	if err != nil {
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	var messages []structure.Message
 
 	for rows.Next() {
 		var message structure.Message
-		if err = rows.Scan(&message.ID, &message.Text, &message.Instant, &message.State); err != nil {
+		if err = rows.Scan(&message.ID, &message.Text, &message.Instant, &message.State, &message.IdSender, &message.NameSender, &message.PhotoSender); err != nil {
 			return nil, err
 		}
 		if message.Comments, err = db.getComment(message.ID); err != nil {
@@ -37,8 +37,8 @@ func (db *appdbimpl) GetConversation(userId int, chatId int) ([]structure.Messag
 	return messages, nil
 }
 
-func (db *appdbimpl) getComment(messageId int) ([]structure.Comment, error) {
-	rows, err := db.c.Query(`	SELECT id, text, id_user
+func (db *appdbimpl) getComment(messageId string) ([]structure.Comment, error) {
+	rows, err := db.c.Query(`	SELECT id, emoji, userId
 								FROM comments
 								WHERE id_message = ?
 								;`, messageId)

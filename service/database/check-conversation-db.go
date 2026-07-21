@@ -2,28 +2,18 @@ package database
 
 import "database/sql"
 
-func (db *appdbimpl) CheckConversation(chatId int) (bool, error) {
-	x := 0
+func (db *appdbimpl) CheckConversation(chatId string, userId string) (bool, error) {
+	var check int
 	err := db.c.QueryRow(`	SELECT 1
-							FROM conversations
-							LEFT JOIN singleChats  ON singleChats.id = conversations.id
-							LEFT JOIN groups ON groups.id = conversations.id
-							LEFT JOIN userGroups ON userGroups.id_group = groups.id
-							WHERE conversations.id = ?
-							AND (
-								singleChats.id_user_1 = ?
-								OR singleChats.id_user_2 = ?
-								OR userGroups.id_user = ?
-							)
+							FROM chat_members
+							WHERE chatId = ? AND userId = ?
 							LIMIT 1;
-							`, chatId, chatId, chatId, chatId).Scan(&x)
+							`, chatId, userId).Scan(&check)
 
 	if err == sql.ErrNoRows {
 		return false, nil
-	}
-	if err != nil {
+	} else if err != nil {
 		return false, err
 	}
 	return true, nil
-
 }

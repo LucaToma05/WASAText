@@ -3,41 +3,30 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
 func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	userId := ctx.UserId
+	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
-	userId, err := extractUserId(authHeader)
-	if err != nil {
-		http.Error(w, "Token extraction error", http.StatusInternalServerError)
+
+	chatId := ps.ByName("chatId")
+	if chatId == "" {
+		http.Error(w, "Parameters extraction error", http.StatusBadRequest)
 		return
 	}
 
-	chatId, err := strconv.Atoi(ps.ByName("chat_id"))
-	if err != nil {
-		http.Error(w, "Conversion Error", http.StatusInternalServerError)
+	ok, err := rt.db.CheckConversation(chatId, userId)
+	if ok == false && err == nil {
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
-	}
-	if chatId == 0 {
-		http.Error(w, "Parameters extraction error", http.StatusInternalServerError)
-		return
-	}
-
-	ok, err := rt.db.CheckConversation(chatId)
-	if err != nil {
+	} else if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if !ok {
-		http.Error(w, "Resource not found", http.StatusNotFound)
 		return
 	}
 
