@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/LucaToma05/WASAText/service/api/reqcontext"
@@ -13,41 +12,27 @@ import (
 )
 
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	userId := ctx.UserId
+	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
-	userId, err := extractUserId(authHeader)
-	if err != nil {
-		http.Error(w, "Token extraction error", http.StatusInternalServerError)
+
+	chatId := ps.ByName("chatId")
+	if chatId == "" {
+		http.Error(w, "Parameters extraction error", http.StatusBadRequest)
 		return
 	}
 
-	chatId, flag := strconv.Atoi(ps.ByName("chat_id"))
-	if flag != nil {
-		http.Error(w, "Conversion Error", http.StatusInternalServerError)
-		return
-	}
-	if chatId == 0 {
-		http.Error(w, "Parameters extraction error", http.StatusInternalServerError)
-		return
-	}
-
-	var obj structure.Message
-	err = json.NewDecoder(r.Body).Decode(&obj)
+	var obj structure.MessageRequest
+	err := json.NewDecoder(r.Body).Decode(&obj)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	obj.State = 0
-	obj.Instant = time.Now()
-	obj.ChatId = chatId
-	obj.IdSender = userId
-
 	//Check text length
-	if len(obj.Text) < 1 {
+	if len(obj.Text) < 1000 {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -59,7 +44,22 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	err = rt.db.SendMessage(obj)
+	idMessage, err := generateId()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	newMessage := structure.Message{
+		ID:       idMessage,
+		Text:     obj.Text,
+		State:    0,
+		Instant:  time.Now(),
+		ChatId:   chatId,
+		IdSender: userId,
+	}
+
+	err = rt.db.SendMessage(newMessage)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

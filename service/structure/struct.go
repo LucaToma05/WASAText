@@ -83,6 +83,11 @@ type Message struct {
 	IdSender    string
 	NameSender  string
 	PhotoSender string
+	ChatId      string
+}
+
+type MessageRequest struct {
+	Text string
 }
 
 type Group struct {
