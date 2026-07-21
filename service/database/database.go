@@ -53,11 +53,12 @@ type AppDatabase interface {
 	SetMyPhoto(user structure.User) error
 	GetMyConversations(id string) ([]structure.ChatPreview, error)
 	GetConversation(chatId string) ([]structure.Message, error)
+	GetMessage(messageId string) (string, error)
 	getComment(messageId string) ([]structure.Comment, error)
 	CheckConversation(chatId string, userId string) (bool, error)
 
 	SendMessage(message structure.Message) error
-	DeleteMessage(userId int, chatId int, messageId int) error
+	DeleteMessage(chatId string, messageId string) error
 	AddToGroup(idGroup int, idUser int) error
 	SetGroupName(name structure.GroupNameRequest, userId int, groupId int) error
 
@@ -138,6 +139,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 						text TEXT NOT NULL, 
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
 						state INTEGER NOT NULL, 
+						forwarded BOOLEAN NOT NULL DEFAULT 0,
 						userId TEXT, 
 						chatId TEXT,
 						FOREIGN KEY (userId) REFERENCES users(userId),

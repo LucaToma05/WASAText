@@ -47,6 +47,10 @@ type Chat struct {
 	Messages     []Message
 }
 
+type ForwardMessageRequest struct {
+	UserID string
+}
+
 // ##################################
 
 type UsernameRequest struct {
@@ -80,6 +84,7 @@ type Message struct {
 	Instant     time.Time
 	Comments    []Comment
 	State       int
+	Forwarded   bool
 	IdSender    string
 	NameSender  string
 	PhotoSender string
