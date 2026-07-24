@@ -25,6 +25,10 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	err = rt.db.LeaveGroup(chatId, userId)
 	if err != nil {

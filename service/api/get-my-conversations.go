@@ -23,5 +23,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chats)
+	if err = json.NewEncoder(w).Encode(chats); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }

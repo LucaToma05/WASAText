@@ -31,7 +31,7 @@ func (rt *_router) Handler() http.Handler {
 
 	//TAG: comment
 	rt.router.POST("/chats/:chatId/messages/:messageId/comments", rt.wrap(rt.commentMessage))
-	rt.router.DELETE("/chats/:chatId/messages/:messageId/comments/:commentId", rt.wrap(rt.deleteComment))
+	rt.router.DELETE("/chats/:chatId/messages/:messageId/comments/:commentId", rt.wrap(rt.uncommentMessage))
 
 	//TAG: group
 	rt.router.PATCH("/chats/:chatId/name", rt.wrap(rt.setGroupName))

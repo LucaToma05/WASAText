@@ -49,7 +49,7 @@ type AppDatabase interface {
 
 	CreateChat(infoChat structure.InfoChat, id string) error
 
-	SetMyUserName(User structure.User) error
+	SetMyUserName(user structure.User) error
 	SetMyPhoto(user structure.User) error
 	GetMyConversations(id string) ([]structure.ChatPreview, error)
 	GetConversation(chatId string) ([]structure.Message, error)

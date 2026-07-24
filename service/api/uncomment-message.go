@@ -32,8 +32,8 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	flag, error := rt.db.CheckConversation(chatId, userId)
-	if error != nil {
+	flag, err := rt.db.CheckConversation(chatId, userId)
+	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -42,7 +42,7 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	err := rt.db.UncommentMessage(messageId, commentId, userId)
+	err = rt.db.UncommentMessage(messageId, commentId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
