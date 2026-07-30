@@ -32,7 +32,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
 	// Check username pattern
-	match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
+	match, _ := regexp.MatchString("^[A-Za-z0-9]+$", req.Name)
 	if !match {
 		http.Error(w, "Invalid username pattern", http.StatusBadRequest)
 		return

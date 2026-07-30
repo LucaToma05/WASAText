@@ -16,7 +16,7 @@ type LoginResponse struct { //UTILIZZATA IN do-login.go
 	UserId string `json:"userId"`
 }
 
-type NewUsername struct {
+type NewUsername struct { //UTILIZZATA IN set-my-user-name.go
 	Name string `json:"name"`
 }
 

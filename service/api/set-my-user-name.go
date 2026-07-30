@@ -29,7 +29,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// Check text pattern
-	match, _ := regexp.MatchString("^.*?$", req.Name)
+	match, _ := regexp.MatchString("^[A-Za-z0-9]+$", req.Name)
 	if !match {
 		http.Error(w, "Invalid username pattern", http.StatusBadRequest)
 		return
@@ -47,7 +47,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	} else if idCheck != "" {
-		http.Error(w, "Username already exists", http.StatusBadRequest)
+		http.Error(w, "Username already exists", http.StatusConflict)
 		return
 	}
 
@@ -71,5 +71,6 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }

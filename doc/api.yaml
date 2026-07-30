@@ -249,6 +249,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflicting resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
       
 security:
   - bearerAuth: []
@@ -290,7 +296,7 @@ paths:
                     description: User nickname
                     type: string
                     example: Maria
-                    pattern: '^(?=.*\S).+$'
+                    pattern: '^[A-Za-z0-9]+$'
                     minLength: 3
                     maxLength: 16
       responses:
@@ -338,7 +344,7 @@ paths:
                   type: string
                   minLength: 3
                   maxLength: 25
-                  pattern: '^(?=.*\S).+$'
+                  pattern: '^[A-Za-z0-9]+$'
                   example: "New username"
       responses:
         "200":
@@ -353,12 +359,14 @@ paths:
                     type: string
                     minLength: 3
                     maxLength: 25
-                    pattern: '^(?=.*\S).+$'
+                    pattern: '^[A-Za-z0-9]+$'
                     example: "New username"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
+        "409":
+          $ref: '#/components/responses/Conflict'
         "500":
           $ref: '#/components/responses/InternalServerError'
       
