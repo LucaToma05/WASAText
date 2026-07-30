@@ -28,7 +28,7 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	// Check text pattern
-	match, _ := regexp.MatchString("^.*?$", req.Name)
+	match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
 	if !match {
 		http.Error(w, "Invalid username pattern", http.StatusBadRequest)
 		return
@@ -60,8 +60,9 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }

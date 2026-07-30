@@ -2,25 +2,25 @@ package api
 
 import "time"
 
-type LoginRequest struct { // UTILIZZATA IN do-login.go
+type LoginRequest struct {
 	Name string `json:"name"`
 }
 
-type User struct { // UTILIZZATA IN do-login.go
+type User struct {
 	UserId string `json:"userId"`
 	Name   string `json:"name"`
 	Photo  string `json:"photo"`
 }
 
-type LoginResponse struct { //UTILIZZATA IN do-login.go
+type LoginResponse struct {
 	UserId string `json:"userId"`
 }
 
-type NewUsername struct { //UTILIZZATA IN set-my-user-name.go
+type NewUsername struct {
 	Name string `json:"name"`
 }
 
-type Photo struct { //UTILIZZATA IN set-my-photo.go
+type Photo struct {
 	Url string `json:"url"`
 }
 
@@ -33,18 +33,18 @@ type ChatPreview struct {
 }
 
 type InfoChat struct {
-	IsGroup      bool
-	Name         string
-	Participants []User
+	IsGroup      bool   `json:"type"`
+	Name         string `json:"name"`
+	Participants []User `json:"participants"`
 }
 
 type Chat struct {
-	ChatId       string
-	IsGroup      bool
-	Name         string
-	Photo        string
-	Participants []User
-	Messages     []Message
+	ChatId       string    `json:"id"`
+	IsGroup      bool      `json:"isGroup"`
+	Name         string    `json:"name"`
+	Photo        string    `json:"photo"`
+	Participants []User    `json:"participants"`
+	Messages     []Message `json:"messages"`
 }
 
 type ForwardMessageRequest struct {
