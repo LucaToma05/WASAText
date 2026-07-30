@@ -20,8 +20,8 @@ type NewUsername struct { //UTILIZZATA IN set-my-user-name.go
 	Name string `json:"name"`
 }
 
-type Photo struct {
-	Url string
+type Photo struct { //UTILIZZATA IN set-my-photo.go
+	Url string `json:"url"`
 }
 
 type ChatPreview struct {

@@ -32,8 +32,7 @@ components:
         url:
           type: string
           description: URL of the photo
-          format: url
-          pattern: '^(?=.*\S).+$'
+          format: uri
           minLength: 1
           maxLength: 1000
           example: "https://foto.com/foto.png"
