@@ -254,6 +254,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: No authorization
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
       
 security:
   - bearerAuth: []
@@ -420,6 +426,8 @@ paths:
                 $ref: '#/components/schemas/ChatList'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/Forbidden'
         "500":
           $ref: '#/components/responses/InternalServerError'
       security:

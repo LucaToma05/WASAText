@@ -22,11 +22,12 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	ok, err := rt.db.CheckConversation(chatId, userId)
-	if ok == false && err == nil {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	} else if err != nil {
+	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Not found", http.StatusForbidden)
 		return
 	}
 
@@ -40,5 +41,6 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(conversation); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
