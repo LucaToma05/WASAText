@@ -2,18 +2,18 @@ package api
 
 import "time"
 
-type LoginRequest struct {
+type LoginRequest struct { // UTILIZZATA IN do-login.go
 	Name string `json:"name"`
 }
 
-type User struct {
+type User struct { // UTILIZZATA IN do-login.go
 	UserId string `json:"userId"`
 	Name   string `json:"name"`
 	Photo  string `json:"photo"`
 }
 
-type LoginResponse struct {
-	UserId string
+type LoginResponse struct { //UTILIZZATA IN do-login.go
+	UserId string `json:"userId"`
 }
 
 type NewUsername struct {

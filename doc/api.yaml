@@ -17,7 +17,7 @@ components:
           type: string
           description: User nickname
           example: "Luca"
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           minLength: 3
           maxLength: 25
         photo:
@@ -33,7 +33,7 @@ components:
           type: string
           description: URL of the photo
           format: url
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           minLength: 1
           maxLength: 1000
           example: "https://foto.com/foto.png"
@@ -44,7 +44,7 @@ components:
       example: "avfd457ud3"
       minLength: 3
       maxLength: 16
-      pattern: '^.*?$'
+      pattern: '^(?=.*\S).+$'
           
     ChatList:
       description: Chat list in reverse chronological order
@@ -68,7 +68,7 @@ components:
         name:
           type: string
           description: Chat name (user nickname or group name)
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           minLength: 3
           maxLength: 25
           example: "Luca"
@@ -88,7 +88,7 @@ components:
         text:
           type: string
           description: Message content
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           example: "ciao"
           minLength: 1
           maxLength: 1000
@@ -156,7 +156,7 @@ components:
         name:
           type: string
           description: Chat name (user nickname or group name)
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           minLength: 3
           maxLength: 25
           example: "Luca"
@@ -179,14 +179,14 @@ components:
         code:
           description: Error code
           type: string
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           example: "Bad Request"
           minLength: 3
           maxLength: 50
         message:
           description: Error message
           type: string
-          pattern: '^.*?$'
+          pattern: '^(?=.*\S).+$'
           example: "Missing request"
           minLength: 3
           maxLength: 100
@@ -290,12 +290,21 @@ paths:
                     description: User nickname
                     type: string
                     example: Maria
-                    pattern: '^.*?$'
+                    pattern: '^(?=.*\S).+$'
                     minLength: 3
                     maxLength: 16
       responses:
+        "200":
+          description: The user has logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    $ref: '#/components/schemas/GeneralId'
         "201":
-          description: User log-in action succesful
+          description: The user has been created and has logged in.
           content:
             application/json:
               schema:
@@ -329,7 +338,7 @@ paths:
                   type: string
                   minLength: 3
                   maxLength: 25
-                  pattern: '^.*?$'
+                  pattern: '^(?=.*\S).+$'
                   example: "New username"
       responses:
         "200":
@@ -344,7 +353,7 @@ paths:
                     type: string
                     minLength: 3
                     maxLength: 25
-                    pattern: '^.*?$'
+                    pattern: '^(?=.*\S).+$'
                     example: "New username"
         "400":
           $ref: '#/components/responses/BadRequest'
@@ -437,7 +446,7 @@ paths:
                 name:
                   description: Group name (only for group chats)
                   type: string
-                  pattern: '^.*?$'
+                  pattern: '^(?=.*\S).+$'
                   minLength: 3
                   maxLength: 25
                   example: "Group name"
@@ -501,7 +510,7 @@ paths:
                 text:
                   description: Message content
                   type: string
-                  pattern: '^.*?$'
+                  pattern: '^(?=.*\S).+$'
                   example: "ciao"
                   minLength: 1
                   maxLength: 1000
@@ -664,7 +673,7 @@ paths:
                   type: string
                   minLength: 3
                   maxLength: 25
-                  pattern: '^.*?$'
+                  pattern: '^(?=.*\S).+$'
                   example: "New group name"
       responses:
         "200":

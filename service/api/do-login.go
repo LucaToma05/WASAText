@@ -32,11 +32,13 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
 	// Check username pattern
-	match, _ := regexp.MatchString("^.*?$", req.Name)
+	match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
 	if !match {
 		http.Error(w, "Invalid username pattern", http.StatusBadRequest)
 		return
 	}
+
+	userCreated := false
 
 	// Search for the user in the database
 	id, err := rt.db.GetIdUserByUsername(req.Name)
@@ -44,6 +46,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	} else if id == "" {
+		userCreated = true
 		// Generate ID
 		id, err = generateId()
 		if err != nil {
@@ -67,7 +70,11 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Authorization", "Bearer "+id)
-	w.WriteHeader(http.StatusCreated)
+	if userCreated == true {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 	if err = json.NewEncoder(w).Encode(risposta); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
