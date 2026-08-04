@@ -8,6 +8,7 @@ func (db *appdbimpl) GetConversation(chatId string) ([]structure.Message, error)
 									messages.instant,
 									messages.state,
 									messages.userId,
+									messages.forwarded,
 									users.name,
 									users.photo
 								FROM messages
@@ -25,7 +26,7 @@ func (db *appdbimpl) GetConversation(chatId string) ([]structure.Message, error)
 
 	for rows.Next() {
 		var message structure.Message
-		if err = rows.Scan(&message.ID, &message.Text, &message.Instant, &message.State, &message.IdSender, &message.NameSender, &message.PhotoSender); err != nil {
+		if err = rows.Scan(&message.ID, &message.Text, &message.Instant, &message.State, &message.IdSender, &message.Forwarded); err != nil {
 			return nil, err
 		}
 		if message.Comments, err = db.getComment(message.ID); err != nil {

@@ -25,11 +25,11 @@ type Photo struct {
 }
 
 type ChatPreview struct {
-	ChatId             string
-	Name               string
-	Photo              string
-	LastMessageInstant time.Time
-	LastMessage        string
+	ChatId             string    `json:"id"`
+	Name               string    `json:"name"`
+	Photo              string    `json:"photo"`
+	LastMessageInstant time.Time `json:"lastMessageInstant"`
+	LastMessage        string    `json:"lastMessage"`
 }
 
 type InfoChat struct {
@@ -45,6 +45,21 @@ type Chat struct {
 	Photo        string    `json:"photo"`
 	Participants []User    `json:"participants"`
 	Messages     []Message `json:"messages"`
+}
+
+type MessageRequest struct {
+	Text string `json:"text"`
+}
+
+type Message struct {
+	ID        string    `json:"id"`
+	Text      string    `json:"text"`
+	Instant   time.Time `json:"instant"`
+	Comments  []Comment `json:"comments"`
+	State     int       `json:"state"`
+	Forwarded bool      `json:"forwarded"`
+	IdSender  string    `json:"sender"`
+	ChatId    string    `json:"chatId"`
 }
 
 type ForwardMessageRequest struct {
@@ -63,8 +78,6 @@ type Comment struct {
 	MessageId string
 }
 
-// ##################################
-
 type UsernameRequest struct {
 	Username string
 }
@@ -82,23 +95,6 @@ type PhotoQuery struct {
 type Conversation struct {
 	ID       int
 	Messages []Message
-}
-
-type Message struct {
-	ID          string
-	Text        string
-	Instant     time.Time
-	Comments    []Comment
-	State       int
-	Forwarded   bool
-	IdSender    string
-	NameSender  string
-	PhotoSender string
-	ChatId      string
-}
-
-type MessageRequest struct {
-	Text string
 }
 
 type Group struct {

@@ -53,6 +53,7 @@ type AppDatabase interface {
 	SetMyPhoto(user structure.User) error
 	GetMyConversations(id string) ([]structure.ChatPreview, error)
 	CheckIdConversation(id string) (bool, error)
+	CheckMessageInChat(chatId string, messageId string) (bool, error)
 	GetConversation(chatId string) ([]structure.Message, error)
 	GetMessage(messageId string) (string, error)
 	getComment(messageId string) ([]structure.Comment, error)
@@ -62,7 +63,7 @@ type AppDatabase interface {
 	IsGroup(chatId string) (bool, error)
 
 	SendMessage(message structure.Message) error
-	DeleteMessage(chatId string, messageId string) error
+	DeleteMessage(chatId string, messageId string, userId string) error
 	SetGroupName(name structure.GroupNameRequest, chatId string) error
 	SetGroupPhoto(groupPhoto structure.GroupPhotoRequest, chatId string) error
 

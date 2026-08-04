@@ -26,7 +26,37 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	err := rt.db.DeleteMessage(chatId, messageId)
+	ok, err := rt.db.CheckIdConversation(chatId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Chat not found", http.StatusNotFound)
+		return
+	}
+
+	ok, err = rt.db.CheckConversation(chatId, userId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "User not authorized for chat", http.StatusForbidden)
+		return
+	}
+
+	ok, err = rt.db.CheckMessageInChat(chatId, messageId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Message not found in chat", http.StatusNotFound)
+		return
+	}
+
+	err = rt.db.DeleteMessage(chatId, messageId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

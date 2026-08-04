@@ -24,21 +24,41 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
+	ok, err := rt.db.CheckIdConversation(chatId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Chat not found", http.StatusNotFound)
+		return
+	}
+
+	ok, err = rt.db.CheckConversation(chatId, userId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "User not authorized for chat", http.StatusForbidden)
+		return
+	}
+
 	var obj structure.MessageRequest
-	err := json.NewDecoder(r.Body).Decode(&obj)
+	err = json.NewDecoder(r.Body).Decode(&obj)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	//Check text length
-	if len(obj.Text) < 1000 {
+	if len(obj.Text) < 1 || len(obj.Text) > 1000 {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	//Check text pattern
-	match, _ := regexp.MatchString("^.*?$", obj.Text)
+	match, _ := regexp.MatchString("^(?=.*\\S).+$", obj.Text)
 	if !match {
 		http.Error(w, "Invalid text pattern", http.StatusBadRequest)
 		return
@@ -51,12 +71,13 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	newMessage := structure.Message{
-		ID:       idMessage,
-		Text:     obj.Text,
-		State:    0,
-		Instant:  time.Now(),
-		ChatId:   chatId,
-		IdSender: userId,
+		ID:        idMessage,
+		Text:      obj.Text,
+		State:     0,
+		Instant:   time.Now(),
+		ChatId:    chatId,
+		IdSender:  userId,
+		Forwarded: false,
 	}
 
 	err = rt.db.SendMessage(newMessage)
@@ -66,8 +87,9 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(obj); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
