@@ -141,6 +141,8 @@ components:
           pattern: '^[^\\s]{1,10}$'
           minLength: 1
           maxLength: 10
+        messageId:
+          $ref: '#/components/schemas/GeneralId'
       required: 
         - emoji
     
@@ -653,7 +655,18 @@ paths:
         content: 
           application/json:
             schema:
-              $ref: '#/components/schemas/Comment'
+              description: Comment to send
+              type: object
+              properties:
+                sender:
+                  $ref: '#/components/schemas/GeneralId'
+                emoji:
+                  type: string
+                  description: Emoji used to react to the message
+                  example: "👍"
+                  pattern: '^[^\\s]{1,10}$'
+                  minLength: 1
+                  maxLength: 10
       responses:
         "201": 
           description: Reaction sent successfully and returned
@@ -665,8 +678,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/Forbidden'
         "404":
           $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
         

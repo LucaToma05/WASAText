@@ -67,15 +67,15 @@ type ForwardMessageRequest struct {
 }
 
 type CommentRequest struct {
-	SenderId string
-	Emoji    string
+	SenderId string `json:"sender"`
+	Emoji    string `json:"emoji"`
 }
 
 type Comment struct {
-	ID        string
-	IdSender  string
-	Emoji     string
-	MessageId string
+	ID        string `json:"id"`
+	IdSender  string `json:"sender"`
+	Emoji     string `json:"emoji"`
+	MessageId string `json:"messageId"`
 }
 
 type UsernameRequest struct {
