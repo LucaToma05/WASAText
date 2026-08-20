@@ -78,6 +78,10 @@ type Comment struct {
 	MessageId string `json:"messageId"`
 }
 
+type GroupNameRequest struct {
+	Name string `json:"name"`
+}
+
 type UsernameRequest struct {
 	Username string
 }
@@ -106,10 +110,6 @@ type GroupResponse struct {
 	ID    int
 	Name  string
 	Photo string
-}
-
-type GroupNameRequest struct {
-	Name string
 }
 
 type GroupPhotoRequest struct {

@@ -55,6 +55,7 @@ type AppDatabase interface {
 	CheckIdConversation(id string) (bool, error)
 	CheckMessageInChat(chatId string, messageId string) (bool, error)
 	CheckCommentInMessage(commentId string, messageId string) (bool, error)
+	CheckUserInGroup(chatId string, userId string) (bool, error)
 	GetConversation(chatId string) ([]structure.Message, error)
 	GetMessage(messageId string) (string, error)
 	getComment(messageId string) ([]structure.Comment, error)

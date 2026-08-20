@@ -747,13 +747,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Chat' #Cambialo e ritorna il nuovo nome
+                type: object
+              properties:
+                name:
+                  description: New group name
+                  type: string
+                  minLength: 3
+                  maxLength: 25
+                  pattern: '^(?=.*\S).+$'
+                  example: "New group name"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
-        "404":
-          $ref: '#/components/responses/NotFound'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
                 

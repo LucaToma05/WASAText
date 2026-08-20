@@ -24,7 +24,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	match, _ := regexp.MatchString("^.*?$", req.Name)
+	match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
 	if !match {
 		http.Error(w, "Invalid name pattern", http.StatusBadRequest)
 		return
@@ -43,12 +43,22 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	flag, err := rt.db.IsGroup(chatId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	if !flag {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	ok, err := rt.db.CheckUserInGroup(chatId, userId)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "User not in the group", http.StatusForbidden)
 		return
 	}
 
@@ -62,5 +72,6 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(req); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
