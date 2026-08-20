@@ -32,13 +32,43 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	flag, err := rt.db.CheckConversation(chatId, userId)
+	ok, err := rt.db.CheckIdConversation(chatId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	if !flag {
-		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
+	if !ok {
+		http.Error(w, "Chat not found", http.StatusNotFound)
+		return
+	}
+
+	ok, err = rt.db.CheckConversation(chatId, userId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "User not authorized for chat", http.StatusForbidden)
+		return
+	}
+
+	ok, err = rt.db.CheckMessageInChat(chatId, messageId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Message not found in chat", http.StatusNotFound)
+		return
+	}
+
+	ok, err = rt.db.CheckCommentInMessage(commentId, messageId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Commment not found in message", http.StatusNotFound)
 		return
 	}
 
