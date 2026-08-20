@@ -63,7 +63,7 @@ type Message struct {
 }
 
 type ForwardMessageRequest struct {
-	UserID string
+	UserID string `json:"userId"`
 }
 
 type CommentRequest struct {
