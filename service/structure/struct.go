@@ -86,6 +86,10 @@ type GroupPhotoRequest struct {
 	Url string `json:"url"`
 }
 
+type AddToGroupRequest struct {
+	UserId string `json:"userId"`
+}
+
 type UsernameRequest struct {
 	Username string
 }
@@ -114,8 +118,4 @@ type GroupResponse struct {
 	ID    int
 	Name  string
 	Photo string
-}
-
-type AddToGroupRequest struct {
-	UserId string
 }

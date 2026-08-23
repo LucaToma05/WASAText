@@ -818,7 +818,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GeneralId'
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/GeneralId'
       responses:
         "201":
           description: User added to group successfully
@@ -830,8 +833,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
-        "404":
-          $ref: '#/components/responses/NotFound'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
   
