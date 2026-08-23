@@ -43,8 +43,22 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	flag, err := rt.db.IsGroup(chatId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	if !flag {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	ok, err := rt.db.CheckUserInGroup(chatId, userId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "User not in the group", http.StatusForbidden)
 		return
 	}
 
@@ -58,5 +72,6 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(req); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
