@@ -21,12 +21,22 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	flag, err := rt.db.IsGroup(chatId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	if !flag {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	ok, err := rt.db.CheckUserInGroup(chatId, userId)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "User not in the group", http.StatusForbidden)
 		return
 	}
 
