@@ -1,5 +1,9 @@
 body {
 	font-size: 0.875rem;
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
+	background-color: #e2fff8; /*<!-- 2a8c82 -->*/
 }
 
 .feather {

@@ -5,22 +5,23 @@ import { RouterLink, RouterView } from 'vue-router'
 <template>
   <header class="navbar">
     <span>
-      <h1>WasaText</h1>
+      <h1 style="padding: 10px; color: black; font-family: fantasy">WasaText</h1>
     </span>
   </header>
 
-  <div class="container">
-	<RouterView />
+  <div class="container" style="overflow: hidden;">
+	  <RouterView />
   </div>
 </template>
 
 <style>
   .navbar {
-    background-color: darkgreen;
+    background-color: rgb(17, 209, 17);
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
+
 </style>
 
 
