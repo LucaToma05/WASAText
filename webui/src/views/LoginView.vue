@@ -17,7 +17,7 @@
 
                 try {
                     // Esegue una richiesta HTTP POST all'endpoint /login con il seguente body
-                    const response = await this.$axios.post("/login", { 
+                    const response = await this.$axios.post("/session", { 
                         name: this.username
                     });
                     
@@ -27,10 +27,11 @@
                     // Salvo l'ID utente
                     localStorage.setItem("userId", userId);
 
-                    // Uso il router èer andare alla home dopo il login
-                    this.$router.push("/");
+                    // Uso il router per andare alla home dopo il login
+                    this.$router.push("/home");
                 } catch (err) {
-                    this.errorMsg = "Errore durante il login";
+                    console.log("Errore login:", err.response?.data || err);
+                    this.errorMsg = err.response?.data?.error || "Errore durante il login";
                 }
             }
 
@@ -44,7 +45,6 @@
             <h1 id="login-label">LOGIN</h1>
             <form @submit.prevent="login">
                 <input v-model="username" type="text" placeholder="Username">
-                <br>
                 <button type="submit">Accedi</button>
             </form>
             <p v-if="errorMsg"> {{ errorMsg }}</p>
@@ -84,6 +84,13 @@
     letter-spacing: 4px;
     font-weight: bold;
     color: #222;
+}
+
+/* Spazio tra input e bottone */
+.login-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;   /* spazio tra input e bottone */
 }
 
 /* Input e bottone molto più grandi */
@@ -132,6 +139,29 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* --- VERSIONE MOBILE --- */
+@media (max-width: 600px) {
+
+    .login-container {
+        padding: 40px;
+        gap: 25px;
+        border-radius: 16px;
+    }
+
+    #login-label {
+        font-size: 42px;
+        letter-spacing: 2px;
+    }
+
+    .login-container input,
+    .login-container button {
+        width: 100%;
+        max-width: 300px;
+        height: 55px;
+        font-size: 20px;
+        padding: 10px;
+    }
+}
 
 
 </style>
