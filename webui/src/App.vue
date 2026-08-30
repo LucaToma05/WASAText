@@ -1,28 +1,48 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <header class="navbar">
-    <span>
+  <div class="app-root">
+    <header class="navbar">
       <h1 style="padding: 10px; color: black; font-family: fantasy">WasaText</h1>
-    </span>
-  </header>
+    </header>
 
-  <div class="container" style="overflow: hidden;">
-	  <RouterView />
+    <div class="app-container">
+      <RouterView />
+    </div>
   </div>
 </template>
 
 <style>
-  .navbar {
-    background-color: rgb(17, 209, 17);
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+.app-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
+/* Header verde */
+.navbar {
+  background-color: rgb(17, 209, 17);
+  margin: 0;
+  padding: 0;
+  height: 100px;
+  display: flex;
+  align-items: center;
+}
+
+/* Spazio sotto l'header */
+.app-container {
+  flex: 1;
+  display: flex;
+  width: 100%;
+}
 </style>
+
+
+
+
+
 
 
 <!--
