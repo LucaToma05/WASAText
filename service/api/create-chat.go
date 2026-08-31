@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"regexp"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -26,28 +25,56 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, "Invalid name length", http.StatusBadRequest)
 		return
 	}
-
-	// Check text pattern
-	match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
-	if !match {
-		http.Error(w, "Invalid username pattern", http.StatusBadRequest)
-		return
-	}
+	ctx.Logger.Info("DEBUG: ctx.UserId = " + ctx.UserId)
 
 	userId := ctx.UserId
 	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
+	/*
+		// Check text pattern
+		match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
+		if !match {
+			http.Error(w, "Invalid username pattern", http.StatusBadRequest)
+			return
+		}
+	*/
+
+	id, err := rt.db.GetIdUserByUsername(req.Name)
+	if err != nil {
+		http.Error(w, "Internal 1 Server Error", http.StatusInternalServerError)
+		return
+	}
+	if id == "" {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	exists, err := rt.db.CheckChatExistsBetween(userId, id)
+	if err != nil {
+		http.Error(w, "Internal 2 Server Error", http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		http.Error(w, "Chat already exists", http.StatusConflict)
+		return
+	}
 
 	chatId, err := generateId()
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Internal 3 Server Error", http.StatusInternalServerError)
 		return
 	}
-	chatErr := rt.db.CreateChat(req, chatId)
+
+	participants := []structure.Username{
+		{Username: userId},
+		{Username: id},
+	}
+
+	chatErr := rt.db.CreateChat(req, chatId, participants)
 	if chatErr != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Internal 4 Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -62,7 +89,7 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Internal 5 Server Error", http.StatusInternalServerError)
 		return
 	}
 }

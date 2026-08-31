@@ -12,8 +12,13 @@ type User struct {
 	Photo  string `json:"photo"`
 }
 
+type Username struct {
+	Username string `json:"participants"`
+}
+
 type LoginResponse struct {
 	UserId string `json:"userId"`
+	Token  string `json:"token"`
 }
 
 type NewUsername struct {
@@ -33,18 +38,18 @@ type ChatPreview struct {
 }
 
 type InfoChat struct {
-	IsGroup      bool   `json:"type"`
-	Name         string `json:"name"`
-	Participants []User `json:"participants"`
+	IsGroup      bool       `json:"type"`
+	Name         string     `json:"name"`
+	Participants []Username `json:"participants"`
 }
 
 type Chat struct {
-	ChatId       string    `json:"id"`
-	IsGroup      bool      `json:"isGroup"`
-	Name         string    `json:"name"`
-	Photo        string    `json:"photo"`
-	Participants []User    `json:"participants"`
-	Messages     []Message `json:"messages"`
+	ChatId       string     `json:"id"`
+	IsGroup      bool       `json:"isGroup"`
+	Name         string     `json:"name"`
+	Photo        string     `json:"photo"`
+	Participants []Username `json:"participants"`
+	Messages     []Message  `json:"messages"`
 }
 
 type MessageRequest struct {

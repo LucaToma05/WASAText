@@ -47,7 +47,7 @@ type AppDatabase interface {
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
 
-	CreateChat(infoChat structure.InfoChat, id string) error
+	CreateChat(infoChat structure.InfoChat, id string, participants []structure.Username) error
 
 	SetMyUserName(user structure.User) error
 	SetMyPhoto(user structure.User) error
@@ -56,6 +56,7 @@ type AppDatabase interface {
 	CheckMessageInChat(chatId string, messageId string) (bool, error)
 	CheckCommentInMessage(commentId string, messageId string) (bool, error)
 	CheckUserInGroup(chatId string, userId string) (bool, error)
+	CheckChatExistsBetween(userA string, userB string) (bool, error)
 	GetConversation(chatId string) ([]structure.Message, error)
 	GetMessage(messageId string) (string, error)
 	getComment(messageId string) ([]structure.Comment, error)
