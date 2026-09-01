@@ -80,8 +80,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		}
 	*/
 	risposta := structure.LoginResponse{
-		UserId: id,
-		Token:  id,
+		Token: id,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if userCreated == true {

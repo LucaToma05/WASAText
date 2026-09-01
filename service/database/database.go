@@ -47,7 +47,7 @@ type AppDatabase interface {
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
 
-	CreateChat(infoChat structure.InfoChat, id string, participants []structure.Username) error
+	CreateChat(infoChat structure.InfoChat, id string, participants []structure.UserId) error
 
 	SetMyUserName(user structure.User) error
 	SetMyPhoto(user structure.User) error

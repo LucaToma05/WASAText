@@ -67,9 +67,9 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	participants := []structure.Username{
-		{Username: userId},
-		{Username: id},
+	participants := []structure.UserId{
+		{UserId: userId},
+		{UserId: id},
 	}
 
 	chatErr := rt.db.CreateChat(req, chatId, participants)

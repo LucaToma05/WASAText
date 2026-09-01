@@ -20,15 +20,15 @@
       <div class="sidebar-content">
         <div 
           v-for="chat in sortedChats" 
-          :key="chat.ChatId" 
+          :key="chat.chatId" 
           class="chat-preview"
-          @click="openChat(chat.ChatId)"
+          @click="openChat(chat.chatId)"
         >
-          <img :src="chat.photo" class="chat-photo" />
+          <img :src="chat.photo || '/default.png'" class="chat-photo">
 
           <div class="chat-info">
             <div class="chat-top-row">
-              <span class="chat-name">{{ chat.Name }}</span>
+              <span class="chat-name">{{ chat.name }}</span>
               <span class="chat-time">{{ formatTime(chat.lastMessageTime) }}</span>
             </div>
 
@@ -86,7 +86,7 @@ export default {
   computed: {
     sortedChats() {
       return [...this.chats].sort((a, b) => {
-        return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
+        return new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0);
       });
     }
   },
@@ -112,7 +112,7 @@ export default {
     async loadChats() {
       try {
         const userId = localStorage.getItem("userId");
-        const response = await this.$axios.get(`/users/${userId}/chats`);
+        const response = await this.$axios.get(`/chats`);
         this.chats = response.data;
       } catch (err) {
         console.log("Errore caricamento chat:", err);

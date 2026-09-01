@@ -16,9 +16,12 @@ type Username struct {
 	Username string `json:"participants"`
 }
 
-type LoginResponse struct {
+type UserId struct {
 	UserId string `json:"userId"`
-	Token  string `json:"token"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
 }
 
 type NewUsername struct {
@@ -30,11 +33,11 @@ type Photo struct {
 }
 
 type ChatPreview struct {
-	ChatId             string    `json:"id"`
-	Name               string    `json:"name"`
-	Photo              string    `json:"photo"`
-	LastMessageInstant time.Time `json:"lastMessageInstant"`
-	LastMessage        string    `json:"lastMessage"`
+	ChatId          string `json:"chatId"`
+	Name            string `json:"name"`
+	Photo           string `json:"photo"`
+	LastMessage     string `json:"lastMessage"`
+	LastMessageTime string `json:"lastMessageTime"`
 }
 
 type InfoChat struct {

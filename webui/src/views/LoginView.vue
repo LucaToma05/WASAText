@@ -32,11 +32,6 @@ export default {
           name: this.username
         });
 
-        /*
-        const userId = response.data.id;
-        localStorage.setItem("userId", userId);
-        */
-       localStorage.setItem("userId", response.data.userId);
        localStorage.setItem("token", response.data.token);
         this.$router.push("/home");
       } catch (err) {
