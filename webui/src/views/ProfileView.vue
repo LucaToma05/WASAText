@@ -1,69 +1,46 @@
-<script>
-export default {
-  data() {
-    return {
-      userId: null,
-      userData: null,
-      loading: true,
-      errorMsg: ""
-    };
-  },
-
-  async mounted() {
-    this.userId = localStorage.getItem("userId");
-    await this.loadProfile();
-  },
-
-  methods: {
-    async loadProfile() {
-      try {
-        const response = await this.$axios.get(`/getUser/${this.userId}`, {
-          headers: { Authorization: "Bearer " + this.userId }
-        });
-
-        this.userData = response.data;
-        this.loading = false;
-      } catch (err) {
-        console.log("Errore caricamento profilo:", err);
-        this.errorMsg = "Impossibile caricare il profilo";
-        this.loading = false;
-      }
-    },
-
-    logout() {
-      localStorage.removeItem("userId");
-      this.$router.push("/");
-    }
-  }
-};
-</script>
-
 <template>
   <div class="profile-wrapper">
 
-    <div class="profile-card" v-if="!loading && userData">
-      <h1>Profilo</h1>
+    <div class="profile-card">
 
-      <img 
-        class="profile-photo"
-        :src="userData.photoUrl || 'https://via.placeholder.com/120'"
-      />
+      <h1 class="title">Profilo utente</h1>
 
-      <p class="profile-name">{{ userData.name }}</p>
-      <p class="profile-id">ID: {{ userData.id }}</p>
+      <!-- FOTO PROFILO -->
+      <div class="profile-section">
+        <h2 class="section-title">Immagine profilo</h2>
 
-      <div class="profile-actions">
-        <button @click="logout">Logout</button>
-        <button @click="$router.push('/home')">Torna alla Home</button>
+        <!-- Immagine vuota -->
+        <div class="profile-photo placeholder-photo"></div>
+
+        <button class="btn-primary">
+          Cambia foto profilo
+        </button>
       </div>
-    </div>
 
-    <div v-if="loading" class="loading">
-      Caricamento profilo...
-    </div>
+      <!-- USERNAME -->
+      <div class="profile-section">
+        <h2 class="section-title">Username</h2>
 
-    <div v-if="errorMsg" class="error">
-      {{ errorMsg }}
+        <div class="username-box">
+          <span class="placeholder-text">username</span>
+        </div>
+
+        <button class="btn-primary">
+          Cambia username
+        </button>
+      </div>
+
+      <!-- AZIONI -->
+      <div class="actions">
+        <button class="btn-secondary">
+          Torna alla Home
+        </button>
+
+        <button class="btn-danger">
+          Logout
+        </button>
+      </div>
+
     </div>
 
   </div>
@@ -72,65 +49,113 @@ export default {
 <style scoped>
 .profile-wrapper {
   height: 100vh;
+  width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: center;   /* CENTRA ORIZZONTALMENTE */
+  align-items: center;       /* CENTRA VERTICALMENTE */
+  background-color: #e2fff8; /* opzionale, come HomeView */
 }
 
 .profile-card {
   background: white;
   padding: 40px;
-  border-radius: 18px;
+  border-radius: 22px;
+  width: 450px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 25px;
-  width: 420px;
+  gap: 30px;
 }
 
-.profile-photo {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-}
-
-.profile-name {
-  font-size: 28px;
+.title {
+  text-align: center;
+  font-size: 32px;
   font-weight: bold;
 }
 
-.profile-id {
-  font-size: 16px;
-  color: #666;
-}
-
-.profile-actions {
+.profile-section {
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.profile-actions button {
-  padding: 10px 18px;
-  border: none;
+.section-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Foto profilo vuota */
+.placeholder-photo {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background-color: #ddd;
+  border: 3px solid #ccc;
+}
+
+.placeholder-text {
+  color: #777;
+  font-size: 20px;
+}
+
+.username-box {
+  padding: 12px 18px;
+  background-color: #f5f5f5;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: bold;
+  border: 2px solid #ccc;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btn-primary {
+  padding: 12px 18px;
   background-color: #222;
   color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  border-radius: 8px;
+  transition: 0.25s ease;
 }
 
-.profile-actions button:hover {
+.btn-primary:hover {
   background-color: #444;
+  transform: translateY(-3px);
 }
 
-.loading {
-  font-size: 22px;
-  color: #333;
+.btn-secondary {
+  padding: 12px 18px;
+  background-color: #ccc;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.25s ease;
 }
 
-.error {
-  font-size: 20px;
-  color: red;
+.btn-secondary:hover {
+  background-color: #bbb;
+}
+
+.btn-danger {
+  padding: 12px 18px;
+  background-color: #d9534f;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.btn-danger:hover {
+  background-color: #c9302c;
 }
 </style>
