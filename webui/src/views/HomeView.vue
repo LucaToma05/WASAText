@@ -7,7 +7,7 @@
       <!-- Barra dei pulsanti -->
       <div class="sidebar-top-bar">
         <div class="left-buttons">
-          <button class="sidebar-btn" @click="showCreateChat = true">Nuova chat</button>
+          <button class="sidebar-btn" @click="showCreateChat = true"> Nuova chat </button>
           <button class="sidebar-btn">Nuovo gruppo</button>
         </div>
 
@@ -74,7 +74,7 @@
 
 <script>
 export default {
-  data() {
+  data() { // Variabili che rappresentano lo stato del componente, quelle reattive
     return {
       showCreateChat: false,
       newChatUsername: "",
@@ -83,7 +83,7 @@ export default {
     };
   },
 
-  computed: {
+  computed: { // Proprietà calcolate automaticamente a partire dai dati in data() -> prendi i dati da data() e li trasforma in altri dati, senza altre operazioni
     sortedChats() {
       return [...this.chats].sort((a, b) => {
         return new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0);
@@ -91,7 +91,7 @@ export default {
     }
   },
 
-  methods: {
+  methods: { // Funzioni che eseguono azioni
     goToProfile() {
       this.$router.push("/profile");
     },
@@ -111,19 +111,22 @@ export default {
 
     async loadChats() {
       try {
-        const userId = localStorage.getItem("userId");
-        const response = await this.$axios.get(`/chats`);
-        this.chats = response.data;
+        const response = await this.$axios.get(`/chats`, {
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token")
+          }
+        });
+
+        this.chats = response.data.map(chat => ({
+          ...chat,
+          displayName: chat.name   // il backend ora manda già il nome corretto
+        }));
+
       } catch (err) {
         console.log("Errore caricamento chat:", err);
       }
     },
 
-    closeCreateChat() {
-      this.showCreateChat = false;
-      this.newChatUsername = "";
-      this.errorMsg = "";
-    },
 
     async createChat() {
       if (this.newChatUsername.trim() === "") {
@@ -157,8 +160,16 @@ export default {
 
   },
 
-  mounted() {
+  mounted() { //Tutto ciò che deve essere eseguito automaticamente quando il componente viene caricato nella pagina
     this.loadChats();
+
+    this.intervalId = setInterval(() => {
+      this.loadChats(); //Chiamata ogni 3 secondi
+    }, 3000);
+  }, 
+
+  beforeUnmount() {
+    clearInterval(this.intervalId);
   }
 };
 </script>

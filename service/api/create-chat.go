@@ -25,7 +25,6 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, "Invalid name length", http.StatusBadRequest)
 		return
 	}
-	ctx.Logger.Info("DEBUG: ctx.UserId = " + ctx.UserId)
 
 	userId := ctx.UserId
 	if userId == "" {
