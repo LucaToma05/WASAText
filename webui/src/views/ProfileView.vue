@@ -10,9 +10,8 @@
         <h2 class="section-title">Immagine profilo</h2>
 
         <img :src="userPhoto" class="profile-photo" />
-        
 
-        <button class="btn-primary">
+        <button class="btn-primary" @click="showPhotoModal = true">
           Cambia foto profilo
         </button>
       </div>
@@ -70,6 +69,33 @@
       </div>
     </div>
 
+    <!-- OVERLAY CAMBIO FOTO PROFILO -->
+    <div v-if="showPhotoModal" class="overlay">
+      <div class="modal-card">
+
+        <h2 class="modal-title">Modifica foto profilo</h2>
+
+        <input
+          v-model="newPhotoUrl"
+          placeholder="URL immagine"
+          class="modal-input"
+        />
+
+        <button class="btn-primary" @click="changePhoto">
+          Salva
+        </button>
+
+        <div v-if="errorMsgPhoto" class="error-msg">
+          {{ errorMsgPhoto }}
+        </div>
+
+        <button class="btn-secondary" @click="showPhotoModal = false">
+          Annulla
+        </button>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -81,7 +107,10 @@ export default {
       userPhoto: "",
       showUsernameModal: false,
       newUsername: "",
-      errorMsg: ""
+      errorMsg: "",
+      showPhotoModal: false,
+      newPhotoUrl: "",
+      errorMsgPhoto: ""
     };
   },
 
@@ -99,7 +128,7 @@ export default {
       this.userPhoto =
         response.data.photo && response.data.photo.trim() !== ""
           ? response.data.photo
-          : "/default.png";
+          : "https://i.pinimg.com/474x/13/74/20/137420f5b9c39bc911e472f5d20f053e.jpg?nii=t";
 
     } catch (err) {
       console.log("Errore caricamento profilo", err);
@@ -139,6 +168,38 @@ export default {
       }
     },
 
+    async changePhoto() {
+      this.errorMsgPhoto = "";
+
+      if (this.newPhotoUrl.trim() === "") {
+        this.errorMsgPhoto = "Inserisci un URL valido";
+        return;
+      }
+
+      try {
+        const res = await this.$axios.put(
+          "/me/photo",
+          { url: this.newPhotoUrl },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.userPhoto = res.data.url;
+        this.newPhotoUrl = "";
+        this.showPhotoModal = false;
+
+      } catch (err) {
+        if (err.response && err.response.data) {
+          this.errorMsgPhoto = err.response.data;
+        } else {
+          this.errorMsgPhoto = "Errore sconosciuto";
+        }
+      }
+    },
+
     goHome() {
       this.$router.push("/home");
     },
@@ -150,9 +211,7 @@ export default {
 };
 </script>
 
-
 <style scoped>
-/* (stili identici ai tuoi, non modificati) */
 .profile-wrapper {
   height: 100vh;
   width: 100%;
@@ -197,7 +256,6 @@ export default {
   object-fit: cover;
   border: 3px solid #ccc;
 }
-
 
 .placeholder-text {
   color: #777;

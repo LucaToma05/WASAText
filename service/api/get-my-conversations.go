@@ -10,26 +10,24 @@ import (
 )
 
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	/*
+	
 	userId := ctx.UserId
 	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
-	*/
-	ctx.Logger.Info("DEBUG: ctx.UserId = " + ctx.UserId)
 
-	chats, err := rt.db.GetMyConversations(ctx.UserId)
+	chats, err := rt.db.GetMyConversations(userId)
 	if err != nil {
 		log.Println("ERRORE GET:", err)
-		http.Error(w, "Internal Server Error 1", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(chats); err != nil {
-		http.Error(w, "Internal Server Error 2", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 }

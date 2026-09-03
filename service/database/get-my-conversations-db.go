@@ -10,7 +10,12 @@ func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, err
 				WHEN c.isGroup = 0 THEN u2.name
 				ELSE c.name
 			END AS name,
-			'' AS photo,
+
+			CASE
+				WHEN c.isGroup = 0 THEN u2.photo
+				ELSE c.photo
+			END AS photo,
+
 			IFNULL(lm.text, '') AS lastMessage,
 			IFNULL(strftime('%Y-%m-%d %H:%M:%S', lm.instant), '') AS lastMessageTime
 		FROM chats c
@@ -27,6 +32,7 @@ func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, err
 			) last ON m.chatId = last.chatId AND m.instant = last.maxInstant
 		) lm ON lm.chatId = c.id
 		ORDER BY lastMessageTime DESC;
+
 
 
     `, id, id)
