@@ -16,6 +16,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/session", rt.wrap(rt.doLogin))
 
 	//TAG: user
+	rt.router.GET("/me", rt.wrap(rt.getMyInformation))
 	rt.router.PATCH("/me/username", rt.wrap(rt.setMyUserName))
 	rt.router.PUT("/me/photo", rt.wrap(rt.setMyPhoto))
 

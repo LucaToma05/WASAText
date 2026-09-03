@@ -9,7 +9,6 @@
       <div class="profile-section">
         <h2 class="section-title">Immagine profilo</h2>
 
-        <!-- Immagine vuota -->
         <div class="profile-photo placeholder-photo"></div>
 
         <button class="btn-primary">
@@ -22,7 +21,7 @@
         <h2 class="section-title">Username</h2>
 
         <div class="username-box">
-          <span class="placeholder-text">username</span>
+          <span class="placeholder-text"> {{ username }}</span>
         </div>
 
         <button class="btn-primary">
@@ -32,11 +31,11 @@
 
       <!-- AZIONI -->
       <div class="actions">
-        <button class="btn-secondary">
+        <button class="btn-secondary" @click="goHome">
           Torna alla Home
         </button>
 
-        <button class="btn-danger">
+        <button class="btn-danger" @click="goLogin">
           Logout
         </button>
       </div>
@@ -46,14 +45,50 @@
   </div>
 </template>
 
+<script>
+export default {
+  data() {
+    return {
+      username: ""
+    };
+  },
+
+  async mounted() {
+    try {
+      const response = await this.$axios.get("/me", {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token")
+        }
+      });
+
+      this.username = response.data.name;
+    } catch (err) {
+      console.log("Errore caricamento username", err);
+    }
+  },
+
+  methods: {
+    goHome() {
+      this.$router.push("/home");
+    },
+
+    goLogin() {
+      this.$router.push("/login");
+    }
+  }
+};
+</script>
+
+
 <style scoped>
+/* (stili identici ai tuoi, non modificati) */
 .profile-wrapper {
   height: 100vh;
   width: 100%;
   display: flex;
-  justify-content: center;   /* CENTRA ORIZZONTALMENTE */
-  align-items: center;       /* CENTRA VERTICALMENTE */
-  background-color: #e2fff8; /* opzionale, come HomeView */
+  justify-content: center;
+  align-items: center;
+  background-color: #e2fff8;
 }
 
 .profile-card {
@@ -84,7 +119,6 @@
   font-weight: bold;
 }
 
-/* Foto profilo vuota */
 .placeholder-photo {
   width: 140px;
   height: 140px;
