@@ -1,47 +1,70 @@
 package database
 
 import structure "github.com/LucaToma05/WASAText/service/structure"
+import "time"
 
 func (db *appdbimpl) GetConversation(chatId string) ([]structure.Message, error) {
-	rows, err := db.c.Query(`	SELECT messages.id, 
-									messages.text,
-									messages.instant,
-									messages.state,
-									messages.userId,
-									messages.forwarded,
-									users.name,
-									users.photo
-								FROM messages
-								JOIN users ON messages.userId = users.userId
-								WHERE messages.chatId = ?
-								ORDER BY messages.instant DESC;
-								`, chatId)
-	if err != nil {
-		return nil, err
-	}
+    rows, err := db.c.Query(`
+        SELECT messages.id,
+               messages.text,
+               messages.instant,
+               messages.state,
+               messages.userId,
+               messages.forwarded
+        FROM messages
+        WHERE messages.chatId = ?
+        ORDER BY messages.instant ASC;
+    `, chatId)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	defer rows.Close()
+    var messages []structure.Message
 
-	var messages []structure.Message
-
-	for rows.Next() {
+    for rows.Next() {
 		var message structure.Message
-		if err = rows.Scan(&message.ID, &message.Text, &message.Instant, &message.State, &message.IdSender, &message.Forwarded); err != nil {
+		var instantStr string
+
+		if err = rows.Scan(
+			&message.ID,
+			&message.Text,
+			&instantStr,
+			&message.State,
+			&message.IdSender,
+			&message.Forwarded,
+		); err != nil {
 			return nil, err
 		}
+
+		message.Instant, err = time.Parse(time.RFC3339, instantStr)
+		if err != nil {
+			return nil, err
+		}
+
 		if message.Comments, err = db.getComment(message.ID); err != nil {
 			return nil, err
 		}
+
 		messages = append(messages, message)
 	}
 
-	return messages, nil
+
+    if err = rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return messages, nil
 }
 
+
 func (db *appdbimpl) getComment(messageId string) ([]structure.Comment, error) {
-	rows, err := db.c.Query(`	SELECT id, emoji, userId
+	rows, err := db.c.Query(`	SELECT 
+									COALESCE(id, ''),
+									COALESCE(emoji, ''),
+									COALESCE(userId, '')
 								FROM comments
-								WHERE id_message = ?
+								WHERE messageId = ?
 								;`, messageId)
 	if err != nil {
 		return nil, err

@@ -22,6 +22,7 @@
           v-for="chat in sortedChats" 
           :key="chat.chatId" 
           class="chat-preview"
+          :class="{ selected: chat.chatId === selectedChatId }"
           @click="openChat(chat.chatId)"
         >
           <img :src="chat.photo || '/default.png'" class="chat-photo">
@@ -43,7 +44,50 @@
 
     <!-- AREA DESTRA -->
     <div class="home-main-area">
-      <!-- Qui metteremo la chat -->
+
+      <!-- Se nessuna chat è selezionata -->
+      <div v-if="!selectedChat" class="empty-chat">
+        <p>Seleziona una chat dalla sidebar.</p>
+      </div>
+
+      <!-- CHAT APERTA -->
+      <div v-else class="chat-area">
+
+        <!-- HEADER -->
+        <div class="chat-header">
+          <h2>{{ selectedChat.name }}</h2>
+        </div>
+
+        <!-- MESSAGGI -->
+        <div class="messages">
+          <div 
+            v-for="msg in selectedChat.messages"
+            :key="msg.id"
+            class="message"
+            :class="{ mine: msg.sender === userId }"
+          >
+            <p>{{ msg.text }}</p>
+            <span class="timestamp">{{ formatTime(msg.instant) }}</span>
+          </div>
+
+          <div v-if="selectedChat.messages.length === 0" class="no-messages">
+            Nessun messaggio ancora. Inizia la conversazione!
+          </div>
+        </div>
+
+        <!-- BOX INVIO -->
+        <div class="send-box">
+          <input 
+            type="text"
+            v-model="newMessage"
+            placeholder="Scrivi un messaggio..."
+            @keyup.enter="sendMessage"
+          />
+          <button @click="sendMessage">Invia</button>
+        </div>
+
+      </div>
+
     </div>
 
     <!-- MODAL CREA CHAT -->
@@ -74,16 +118,20 @@
 
 <script>
 export default {
-  data() { // Variabili che rappresentano lo stato del componente, quelle reattive
+  data() {
     return {
       showCreateChat: false,
       newChatUsername: "",
       errorMsg: "",
-      chats: []
+      chats: [],
+      selectedChat: null,
+      selectedChatId: null,
+      newMessage: "",
+      userId: localStorage.getItem("userId")
     };
   },
 
-  computed: { // Proprietà calcolate automaticamente a partire dai dati in data() -> prendi i dati da data() e li trasforma in altri dati, senza altre operazioni
+  computed: {
     sortedChats() {
       return [...this.chats].sort((a, b) => {
         return new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0);
@@ -91,13 +139,32 @@ export default {
     }
   },
 
-  methods: { // Funzioni che eseguono azioni
+  methods: {
     goToProfile() {
       this.$router.push("/profile");
     },
 
-    openChat(chatId) {
-      console.log("Apri chat:", chatId);
+    async openChat(chatId) {
+      this.selectedChatId = chatId;
+
+      try {
+        const response = await this.$axios.get(`/chats/${chatId}/messages`, {
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token")
+          }
+        });
+
+        const messages = Array.isArray(response.data) ? response.data : [];
+
+        this.selectedChat = {
+          chatId,
+          name: this.chats.find(c => c.chatId === chatId)?.name || "Chat",
+          messages
+        };
+
+      } catch (err) {
+        console.log("Errore apertura chat:", err);
+      }
     },
 
     formatTime(timeString) {
@@ -119,14 +186,13 @@ export default {
 
         this.chats = response.data.map(chat => ({
           ...chat,
-          displayName: chat.name   // il backend ora manda già il nome corretto
+          displayName: chat.name
         }));
 
       } catch (err) {
         console.log("Errore caricamento chat:", err);
       }
     },
-
 
     async createChat() {
       if (this.newChatUsername.trim() === "") {
@@ -154,19 +220,44 @@ export default {
       } catch (err) {
         this.errorMsg = err.response?.data || "Errore creazione chat";
       }
+    },
+
+    async sendMessage() {
+      if (this.newMessage.trim() === "") return;
+
+      try {
+        await this.$axios.post(
+          `/chats/${this.selectedChatId}/messages`,
+          { text: this.newMessage },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.newMessage = "";
+        await this.openChat(this.selectedChatId);
+
+      } catch (err) {
+        console.log("Errore invio messaggio:", err);
+      }
+    },
+
+    closeCreateChat() {
+      this.showCreateChat = false;
+      this.newChatUsername = "";
+      this.errorMsg = "";
     }
-
-
-
   },
 
-  mounted() { //Tutto ciò che deve essere eseguito automaticamente quando il componente viene caricato nella pagina
+  mounted() {
     this.loadChats();
 
     this.intervalId = setInterval(() => {
-      this.loadChats(); //Chiamata ogni 3 secondi
+      this.loadChats();
     }, 3000);
-  }, 
+  },
 
   beforeUnmount() {
     clearInterval(this.intervalId);
@@ -252,6 +343,12 @@ export default {
   border-bottom: 1px solid #eee;
 }
 
+.chat-preview.selected {
+  background-color: #d0f0ff;
+  border-left: 5px solid #0077aa;
+}
+
+
 .chat-preview:hover {
   background-color: #f5f5f5;
 }
@@ -300,6 +397,19 @@ export default {
 
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
 }
+
+.empty-chat {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+
+  font-size: 22px;
+  color: #444;
+  padding: 20px;
+}
+
 
 /* MODAL */
 .modal-overlay {
@@ -394,6 +504,78 @@ export default {
 .btn-secondary:hover {
   background-color: #bbb;
 }
+
+/* AREA CHAT */
+.chat-area {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 22px;
+}
+
+/* Header */
+.chat-header {
+  padding: 20px;
+  border-bottom: 2px solid #ccc;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* Messaggi */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message {
+  max-width: 60%;
+  padding: 12px;
+  background-color: #e6e6e6;
+  border-radius: 12px;
+}
+
+.message.mine {
+  background-color: #cce5ff;
+  margin-left: auto;
+}
+
+.timestamp {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* Box invio */
+.send-box {
+  display: flex;
+  padding: 15px;
+  border-top: 2px solid #ccc;
+  background-color: #f5f5f5;
+}
+
+.send-box input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #aaa;
+}
+
+.send-box button {
+  margin-left: 10px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background-color: #222;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
 
 /* MOBILE */
 @media (max-width: 900px) {
