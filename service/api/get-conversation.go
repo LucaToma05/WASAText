@@ -41,7 +41,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	conversation, err := rt.db.GetConversation(chatId)
+	conversation, err := rt.db.GetConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

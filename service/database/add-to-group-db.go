@@ -5,6 +5,6 @@ import (
 )
 
 func (db *appdbimpl) AddToGroup(req structure.AddToGroupRequest, chatId string) error {
-	_, err := db.c.Exec("INSERT INTO userGroups (chatId, userId) VALUES (?,?);", chatId, req.UserId)
+	_, err := db.c.Exec("INSERT INTO chat_members (chatId, userId) VALUES (?,?);", chatId, req.UserId)
 	return err
 }

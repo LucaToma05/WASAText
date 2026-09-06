@@ -6,7 +6,7 @@ func (db *appdbimpl) CheckMessageInChat(chatId string, messageId string) (bool, 
 	var check int
 	err := db.c.QueryRow(`	SELECT 1
 							FROM messages
-							WHERE chatId = ? AND messageId = ?
+							WHERE chatId = ? AND id = ?
 							LIMIT 1;
 							`, chatId, messageId).Scan(&check)
 

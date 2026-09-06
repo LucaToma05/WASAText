@@ -33,16 +33,21 @@ type Photo struct {
 }
 
 type ChatPreview struct {
-	ChatId          string `json:"chatId"`
-	Name            string `json:"name"`
-	Photo           string `json:"photo"`
-	LastMessage     string `json:"lastMessage"`
-	LastMessageTime string `json:"lastMessageTime"`
+	ChatId            string `json:"chatId"`
+	Name              string `json:"name"`
+	Photo             string `json:"photo"`
+	LastMessage       string `json:"lastMessage"`
+	LastMessageTime   string `json:"lastMessageTime"`
+	IsGroup           bool   `json:"isGroup"`
+	HasUnread         bool   `json:"hasUnread"`
+	UnreadCount       int    `json:"unreadCount"`
+	LastMessageUserId string `json:"lastMessageUserId"`
 }
 
 type InfoChat struct {
 	IsGroup      bool       `json:"type"`
 	Name         string     `json:"name"`
+	Photo        string     `json:"photo"`
 	Participants []Username `json:"participants"`
 }
 
@@ -60,14 +65,18 @@ type MessageRequest struct {
 }
 
 type Message struct {
-	ID        string    `json:"id"`
-	Text      string    `json:"text"`
-	Instant   time.Time `json:"instant"`
-	Comments  []Comment `json:"comments"`
-	State     int       `json:"state"`
-	Forwarded bool      `json:"forwarded"`
-	IdSender  string    `json:"sender"`
-	ChatId    string    `json:"chatId"`
+	ID             string    `json:"id"`
+	Text           string    `json:"text"`
+	Instant        time.Time `json:"instant"`
+	Comments       []Comment `json:"comments"`
+	State          int       `json:"state"`
+	Forwarded      bool      `json:"forwarded"`
+	IdSender       string    `json:"sender"`
+	SenderUsername string    `json:"senderUsername"`
+	SenderName     string    `json:"senderName"`
+	ChatId         string    `json:"chatId"`
+	ReadBy         []string  `json:"readBy,omitempty"`
+	Deleted        bool      `json:"deleted"`
 }
 
 type ForwardMessageRequest struct {
@@ -80,10 +89,12 @@ type CommentRequest struct {
 }
 
 type Comment struct {
-	ID        string `json:"id"`
-	IdSender  string `json:"sender"`
-	Emoji     string `json:"emoji"`
-	MessageId string `json:"messageId"`
+	ID             string `json:"id"`
+	IdSender       string `json:"sender"`
+	SenderUsername string `json:"senderUsername,omitempty"`
+	SenderName     string `json:"senderName,omitempty"`
+	Emoji          string `json:"emoji"`
+	MessageId      string `json:"messageId"`
 }
 
 type GroupNameRequest struct {

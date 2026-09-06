@@ -32,7 +32,9 @@ export default {
           name: this.username
         });
 
-       localStorage.setItem("token", response.data.token);
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userId", response.data.token || response.data.userId);
+        localStorage.setItem("username", this.username.trim());
         this.$router.push("/home");
       } catch (err) {
         this.errorMsg = err.response?.data?.error || "Errore durante il login";

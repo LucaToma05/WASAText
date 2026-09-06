@@ -4,7 +4,7 @@ package database
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
 func (db *appdbimpl) CreateChat(infoChat structure.InfoChat, id string, participants []structure.UserId) error {
-	_, err := db.c.Exec("INSERT INTO chats (id, name, isGroup) VALUES (?, ?, ?)", id, infoChat.Name, infoChat.IsGroup)
+	_, err := db.c.Exec("INSERT INTO chats (id, name, photo, isGroup) VALUES (?, ?, ?, ?)", id, infoChat.Name, infoChat.Photo, infoChat.IsGroup)
 	if err != nil {
 		return err
 	}

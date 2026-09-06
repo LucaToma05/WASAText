@@ -76,7 +76,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	newMessage := structure.Message{
 		ID:        idMessage,
 		Text:      obj.Text,
-		State:     0,
+		State:     1,
 		Instant:   time.Now(),
 		ChatId:    chatId,
 		IdSender:  userId,

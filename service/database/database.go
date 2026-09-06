@@ -57,7 +57,7 @@ type AppDatabase interface {
 	CheckCommentInMessage(commentId string, messageId string) (bool, error)
 	CheckUserInGroup(chatId string, userId string) (bool, error)
 	CheckChatExistsBetween(userA string, userB string) (bool, error)
-	GetConversation(chatId string) ([]structure.Message, error)
+	GetConversation(chatId string, currentUserId string) ([]structure.Message, error)
 	GetMyInformation(userId string) (structure.User, error)
 	GetMessage(messageId string) (string, error)
 	getComment(messageId string) ([]structure.Comment, error)
@@ -176,6 +176,24 @@ func New(db *sql.DB) (AppDatabase, error) {
 		_, errComments = db.Exec(sqlStmt)
 		if errComments != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", errComments)
+		}
+	}
+
+	//message_reads table creation
+	var message_reads string
+	errReads := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='message_reads';`).Scan(&message_reads)
+	if errors.Is(errReads, sql.ErrNoRows) {
+		sqlStmt := `CREATE TABLE message_reads (
+						messageId TEXT NOT NULL,
+						userId TEXT NOT NULL,
+						readInstant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						PRIMARY KEY (messageId, userId),
+						FOREIGN KEY (messageId) REFERENCES messages(id),
+						FOREIGN KEY (userId) REFERENCES users(userId)
+					);`
+		_, errReads = db.Exec(sqlStmt)
+		if errReads != nil {
+			return nil, fmt.Errorf("error creating database structure: %w", errReads)
 		}
 	}
 

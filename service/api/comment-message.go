@@ -71,11 +71,19 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	senderInfo, errInfo := rt.db.GetMyInformation(userId)
+	senderName := userId
+	if errInfo == nil && senderInfo.Name != "" {
+		senderName = senderInfo.Name
+	}
+
 	newComment := structure.Comment{
-		ID:        commentId,
-		IdSender:  userId,
-		Emoji:     req.Emoji,
-		MessageId: messageId,
+		ID:             commentId,
+		IdSender:       userId,
+		SenderUsername: senderName,
+		SenderName:     senderName,
+		Emoji:          req.Emoji,
+		MessageId:      messageId,
 	}
 
 	err = rt.db.CommentMessage(newComment)

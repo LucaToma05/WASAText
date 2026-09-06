@@ -8,7 +8,7 @@
       <div class="sidebar-top-bar">
         <div class="left-buttons">
           <button class="sidebar-btn" @click="showCreateChat = true"> Nuova chat </button>
-          <button class="sidebar-btn">Nuovo gruppo</button>
+          <button class="sidebar-btn" @click="openCreateGroupModal">Nuovo gruppo</button>
         </div>
 
         <div class="right-button">
@@ -22,10 +22,13 @@
           v-for="chat in sortedChats" 
           :key="chat.chatId" 
           class="chat-preview"
-          :class="{ selected: chat.chatId === selectedChatId }"
+          :class="{ 
+            selected: chat.chatId === selectedChatId,
+            'unread-chat': isChatUnread(chat)
+          }"
           @click="openChat(chat.chatId)"
         >
-          <img :src="chat.photo || '/default.png'" class="chat-photo">
+          <img :src="chat.photo || '/default.png'" class="chat-photo" alt="Avatar">
 
           <div class="chat-info">
             <div class="chat-top-row">
@@ -33,8 +36,19 @@
               <span class="chat-time">{{ formatTime(chat.lastMessageTime) }}</span>
             </div>
 
-            <div class="chat-last-message">
-              {{ chat.lastMessage }}
+            <div class="chat-bottom-row">
+              <div class="chat-last-message">
+                <span v-if="isChatLastMessagePhoto(chat.lastMessage)" class="chat-last-photo">
+                  <span class="photo-icon">📷</span> Foto
+                </span>
+                <span v-else-if="formatChatLastMessage(chat.lastMessage) === 'Questo messaggio è stato eliminato'" class="chat-last-deleted">
+                  <em>Questo messaggio è stato eliminato</em>
+                </span>
+                <span v-else>
+                  {{ formatChatLastMessage(chat.lastMessage) }}
+                </span>
+              </div>
+              <span v-if="isChatUnread(chat)" class="unread-dot" title="Nuovo messaggio non letto"></span>
             </div>
           </div>
         </div>
@@ -55,19 +69,257 @@
 
         <!-- HEADER -->
         <div class="chat-header">
-          <h2>{{ selectedChat.name }}</h2>
+          <div class="chat-header-left">
+            <img 
+              :src="selectedChat.photo || '/default.png'" 
+              class="chat-header-photo" 
+              alt="Foto conversazione"
+            />
+            <div class="chat-header-details">
+              <h2 class="chat-header-title">{{ selectedChat.name }}</h2>
+              <span v-if="selectedChat.isGroup" class="chat-header-badge">Gruppo</span>
+            </div>
+          </div>
+
+          <!-- Pulsante impostazioni gruppo: visibile esclusivamente per gruppi -->
+          <div v-if="selectedChat.isGroup" class="chat-header-actions">
+            <button 
+              type="button" 
+              class="header-settings-btn" 
+              @click="openGroupSettings" 
+              title="Gestione gruppo"
+              aria-label="Gestione gruppo"
+            >
+              <svg 
+                class="gear-icon" 
+                viewBox="0 0 24 24" 
+                width="22" 
+                height="22" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                fill="none" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- MESSAGGI -->
-        <div class="messages">
+        <div class="messages" ref="messagesContainer" @click="closeEmojiPicker">
           <div 
             v-for="msg in selectedChat.messages"
             :key="msg.id"
-            class="message"
-            :class="{ mine: msg.sender === userId }"
+            class="message-wrapper"
+            :class="{ 
+              'sent': isMyMessage(msg), 
+              'received': !isMyMessage(msg),
+              'is-mine': isMyMessage(msg), 
+              'has-active-picker': activeEmojiPickerMessageId === msg.id 
+            }"
           >
-            <p>{{ msg.text }}</p>
-            <span class="timestamp">{{ formatTime(msg.instant) }}</span>
+            <!-- Nuvoletta Messaggio -->
+            <div 
+              class="message"
+              :class="{ 
+                'sent': isMyMessage(msg), 
+                'received': !isMyMessage(msg),
+                'is-mine': isMyMessage(msg), 
+                'is-deleted': isMessageDeleted(msg),
+                'has-active-picker': activeEmojiPickerMessageId === msg.id 
+              }"
+            >
+              <!-- Indicatore Inoltrato (in alto a destra del fumetto in stile WhatsApp) -->
+              <div v-if="!isMessageDeleted(msg) && msg.forwarded" class="forwarded-indicator">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 14 20 9 15 4"></polyline>
+                  <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+                </svg>
+                <span>Inoltrato</span>
+              </div>
+
+              <!-- Mittente: visibile solo nei messaggi ricevuti -->
+              <div v-if="!isMyMessage(msg)" class="message-sender">
+                {{ getSenderName(msg) }}
+              </div>
+
+              <!-- Citazione Risposta incorporata (stile WhatsApp) -->
+              <div v-if="!isMessageDeleted(msg) && getParsedMessage(msg).reply" class="message-reply-preview">
+                <div class="reply-preview-stripe"></div>
+                <div class="reply-preview-body">
+                  <span class="reply-preview-sender">{{ getParsedMessage(msg).reply.sender }}</span>
+                  <div class="reply-preview-text">
+                    <span v-if="getParsedMessage(msg).reply.isPhoto" class="photo-indicator">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                      Foto
+                    </span>
+                    <span v-else>{{ getParsedMessage(msg).reply.text }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Testo del messaggio / Foto / Tombstone -->
+              <div class="message-text" :class="{ 'is-deleted-text': isMessageDeleted(msg) }">
+                <span v-if="isMessageDeleted(msg)" class="tombstone-text">
+                  <em>Questo messaggio è stato eliminato</em>
+                </span>
+                <div v-else-if="isMessagePhoto(getParsedMessage(msg).text)" class="message-photo-wrapper">
+                  <img 
+                    :src="getMessagePhotoUrl(getParsedMessage(msg).text)" 
+                    class="message-photo-img" 
+                    alt="Foto messaggio" 
+                    loading="lazy"
+                  />
+                </div>
+                <span v-else>{{ getParsedMessage(msg).text }}</span>
+              </div>
+
+              <!-- Footer del fumetto: Contenitore dedicato alle reazioni posizionato sotto al testo (nascosto se eliminato) -->
+              <div 
+                v-if="!isMessageDeleted(msg) && msg.comments && msg.comments.length > 0" 
+                class="message-reactions-footer"
+              >
+                <button 
+                  v-for="(comment, cIdx) in msg.comments" 
+                  :key="comment.id || (comment.emoji + '-' + cIdx)"
+                  type="button"
+                  class="reaction-footer-badge"
+                  :class="{ 'is-mine': isMyReactionComment(comment) }"
+                  :title="isMyReactionComment(comment) ? 'Clicca per rimuovere la tua reazione (' + comment.emoji + ')' : 'Reazione aggiunta da ' + getReactionSenderName(comment)"
+                  @click.stop="handleCommentClick(msg, comment)"
+                >
+                  <span class="reaction-badge-emoji">{{ comment.emoji }}</span>
+                  <span class="reaction-badge-user">{{ getReactionSenderName(comment) }}</span>
+                </button>
+              </div>
+
+              <!-- Dettagli: Orario e Spunte di stato -->
+              <div class="message-meta">
+                <span class="timestamp">{{ formatTime(msg.instant) }}</span>
+
+                <!-- Spunte di stato: visibili solo per i messaggi inviati dall'utente e non eliminati -->
+                <span 
+                  v-if="isMyMessage(msg) && !isMessageDeleted(msg)" 
+                  class="message-status" 
+                  :class="getStatusClass(msg)"
+                  :title="getStatusTitle(msg)"
+                >
+                  <!-- Doppia spunta: visibile SOLO se letto da tutti i destinatari (altro utente in 1-a-1 o tutti i membri nei gruppi) -->
+                  <svg 
+                    v-if="isMessageRead(msg)" 
+                    class="check-icon double" 
+                    viewBox="0 0 18 12" 
+                    width="16" 
+                    height="11" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M1 6.5L4.5 10L11.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6.5L9.5 10L16.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+
+                  <!-- Singola spunta: consegnato / ricevuto (in attesa di lettura da parte di tutti i destinatari) -->
+                  <svg 
+                    v-else 
+                    class="check-icon single" 
+                    viewBox="0 0 14 12" 
+                    width="13" 
+                    height="11" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M1.5 6.5L5 10L12 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </div>
+
+              <!-- Barra azioni messaggio al passaggio del mouse: nascosta per i messaggi eliminati -->
+              <div v-if="!isMessageDeleted(msg)" class="message-action-toolbar">
+                <!-- Bottone Reazioni -->
+                <button 
+                  type="button" 
+                  class="msg-action-btn" 
+                  title="Reagisci"
+                  @click.stop="toggleEmojiPicker(msg.id)"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                  </svg>
+                </button>
+
+                <!-- Bottone Rispondi -->
+                <button 
+                  type="button" 
+                  class="msg-action-btn" 
+                  title="Rispondi"
+                  @click.stop="startReply(msg)"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 17 4 12 9 7"></polyline>
+                    <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+                  </svg>
+                </button>
+
+                <!-- Bottone Inoltra -->
+                <button 
+                  type="button" 
+                  class="msg-action-btn" 
+                  title="Inoltra"
+                  @click.stop="openForwardModal(msg)"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 17 20 12 15 7"></polyline>
+                    <path d="M4 18v-2a4 4 0 0 1 4-4h12"></path>
+                  </svg>
+                </button>
+
+                <!-- Bottone Elimina (visibile e cliccabile solo per i messaggi inviati dall'utente) -->
+                <button 
+                  v-if="isMyMessage(msg)" 
+                  type="button" 
+                  class="msg-action-btn btn-delete-msg" 
+                  title="Elimina messaggio"
+                  @click.stop.prevent="deleteMessage(msg)"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Popup Selettore 4 Emoji (👍, ❤️, 😂, 😮) -->
+              <div 
+                v-if="activeEmojiPickerMessageId === msg.id" 
+                class="emoji-picker-popup"
+                @click.stop
+              >
+                <button 
+                  v-for="emoji in reactionEmojis" 
+                  :key="emoji"
+                  type="button"
+                  class="emoji-option-btn"
+                  :class="{ 'is-selected': hasUserReactedWith(msg, emoji) }"
+                  @click="handleEmojiSelect(msg, emoji)"
+                  :title="hasUserReactedWith(msg, emoji) ? 'Rimuovi reazione' : 'Reagisci con ' + emoji"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
+            </div>
+
           </div>
 
           <div v-if="selectedChat.messages.length === 0" class="no-messages">
@@ -75,15 +327,49 @@
           </div>
         </div>
 
+        <!-- BARRA PREVIEW RISPOSTA (quando si risponde a un messaggio) -->
+        <div v-if="replyingToMessage" class="reply-preview-bar">
+          <div class="reply-preview-stripe"></div>
+          <div class="reply-preview-body">
+            <div class="reply-preview-title">
+              Risposta a <strong>{{ getSenderName(replyingToMessage) }}</strong>
+            </div>
+            <div class="reply-preview-snippet">
+              <span v-if="isMessagePhoto(getParsedMessage(replyingToMessage).text)" class="photo-indicator">
+                📷 Foto
+              </span>
+              <span v-else>{{ getMessageSnippet(getParsedMessage(replyingToMessage).text, 80) }}</span>
+            </div>
+          </div>
+          <button type="button" class="btn-cancel-reply" @click="cancelReply" title="Annulla risposta">
+            ✕
+          </button>
+        </div>
+
         <!-- BOX INVIO -->
         <div class="send-box">
+          <!-- Pulsante per inviare foto tramite modale -->
+          <button 
+            type="button" 
+            class="btn-attach-photo" 
+            @click="openPhotoModal" 
+            title="Invia una foto"
+            aria-label="Invia una foto"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </button>
+
           <input 
+            ref="messageInput"
             type="text"
             v-model="newMessage"
             placeholder="Scrivi un messaggio..."
             @keyup.enter="sendMessage"
           />
-          <button @click="sendMessage">Invia</button>
+          <button class="btn-send-message" @click="sendMessage">Invia</button>
         </div>
 
       </div>
@@ -113,6 +399,305 @@
       </div>
     </div>
 
+    <!-- MODAL CREA GRUPPO -->
+    <div v-if="showCreateGroup" class="modal-overlay" @click.self="closeCreateGroup">
+      <div class="modal-card modal-group-card">
+
+        <h2 class="modal-title">Nuovo Gruppo</h2>
+
+        <!-- Nome Gruppo -->
+        <div class="modal-form-group">
+          <label class="modal-label">Nome del gruppo *</label>
+          <input 
+            v-model="groupName"
+            type="text"
+            placeholder="Nome del gruppo (3-25 caratteri)"
+            class="modal-input modal-input-compact"
+            maxlength="25"
+          />
+        </div>
+
+        <!-- Foto Gruppo -->
+        <div class="modal-form-group">
+          <label class="modal-label">Foto del gruppo (opzionale)</label>
+          <div class="photo-input-section">
+            <div v-if="groupPhoto" class="photo-preview-box">
+              <img :src="groupPhoto" class="group-photo-preview" alt="Anteprima foto" />
+              <button type="button" class="btn-clear-photo" @click="groupPhoto = ''" title="Rimuovi foto">✕</button>
+            </div>
+            <div class="photo-inputs-wrapper">
+              <input 
+                v-model="groupPhoto"
+                type="url"
+                placeholder="Incolla il link (URL) dell'immagine..."
+                class="modal-input modal-input-compact"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Selezione Utenti -->
+        <div class="modal-form-group">
+          <label class="modal-label">Partecipanti</label>
+          <div class="add-user-row">
+            <input 
+              v-model="userToAdd"
+              type="text"
+              placeholder="Username partecipante..."
+              class="modal-input modal-input-compact"
+              @keyup.enter.prevent="addParticipant"
+            />
+            <button type="button" class="btn-add-chip" @click="addParticipant">Aggiungi</button>
+          </div>
+
+
+
+          <!-- Membri selezionati -->
+          <div class="selected-users-box">
+            <span class="selected-title">Membri selezionati ({{ selectedParticipants.length }}):</span>
+            <div v-if="selectedParticipants.length === 0" class="no-users-hint">
+              Nessun altro utente selezionato. Tu verrai incluso automaticamente.
+            </div>
+            <div v-else class="chips-container">
+              <span 
+                v-for="user in selectedParticipants" 
+                :key="user" 
+                class="user-chip"
+              >
+                {{ user }}
+                <button type="button" class="chip-remove-btn" @click="removeParticipant(user)" title="Rimuovi">✕</button>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p v-if="groupErrorMsg" class="error-msg">{{ groupErrorMsg }}</p>
+
+        <div class="modal-buttons">
+          <button class="btn-primary" :disabled="isCreatingGroup" @click="createGroup">
+            {{ isCreatingGroup ? 'Creazione in corso...' : 'Crea gruppo' }}
+          </button>
+          <button class="btn-secondary" @click="closeCreateGroup">Annulla</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL GESTIONE GRUPPO -->
+    <div v-if="showGroupSettings" class="modal-overlay" @click.self="closeGroupSettings">
+      <div class="modal-card modal-group-card">
+
+        <div class="modal-header-row">
+          <h2 class="modal-title">Gestione Gruppo</h2>
+          <button type="button" class="btn-close-modal" @click="closeGroupSettings" title="Chiudi">✕</button>
+        </div>
+
+        <!-- Modifica Nome Gruppo -->
+        <div class="modal-form-group">
+          <label class="modal-label">Nome del gruppo</label>
+          <div class="input-with-action">
+            <input 
+              v-model="editGroupName"
+              type="text"
+              placeholder="Nome del gruppo (3-25 caratteri)"
+              class="modal-input modal-input-compact"
+              maxlength="25"
+            />
+            <button 
+              type="button" 
+              class="btn-action-small"
+              :disabled="isSavingGroupName || !editGroupName.trim() || editGroupName.trim() === selectedChat?.name"
+              @click="updateGroupName"
+            >
+              {{ isSavingGroupName ? 'Salvataggio...' : 'Aggiorna' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Modifica Foto Gruppo (solo URL) -->
+        <div class="modal-form-group">
+          <label class="modal-label">Foto del gruppo (URL immagine)</label>
+          <div class="photo-edit-section">
+            <div v-if="editGroupPhoto" class="photo-preview-box">
+              <img :src="editGroupPhoto" class="group-photo-preview" alt="Anteprima foto" />
+              <button type="button" class="btn-clear-photo" @click="editGroupPhoto = ''" title="Rimuovi foto">✕</button>
+            </div>
+            <div class="input-with-action">
+              <input 
+                v-model="editGroupPhoto"
+                type="url"
+                placeholder="Incolla il link (URL) dell'immagine..."
+                class="modal-input modal-input-compact"
+              />
+              <button 
+                type="button" 
+                class="btn-action-small"
+                :disabled="isSavingGroupPhoto || !editGroupPhoto.trim() || editGroupPhoto.trim() === selectedChat?.photo"
+                @click="updateGroupPhoto"
+              >
+                {{ isSavingGroupPhoto ? 'Salvataggio...' : 'Aggiorna' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aggiungi Nuovi Partecipanti -->
+        <div class="modal-form-group">
+          <label class="modal-label">Aggiungi nuovo membro (cerca utente WASAText)</label>
+          <div class="input-with-action">
+            <input 
+              v-model="newMemberUsername"
+              type="text"
+              placeholder="Username partecipante..."
+              class="modal-input modal-input-compact"
+              @keyup.enter="addMemberToGroup"
+            />
+            <button 
+              type="button" 
+              class="btn-action-small btn-primary-small"
+              :disabled="isAddingMember || !newMemberUsername.trim()"
+              @click="addMemberToGroup"
+            >
+              {{ isAddingMember ? 'Aggiunta...' : 'Aggiungi' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Feedback stato -->
+        <p v-if="groupSettingsSuccess" class="success-msg">{{ groupSettingsSuccess }}</p>
+        <p v-if="groupSettingsError" class="error-msg">{{ groupSettingsError }}</p>
+
+        <hr class="modal-divider" />
+
+        <!-- Danger Zone: Abbandona Gruppo -->
+        <div class="modal-danger-zone">
+          <button 
+            type="button" 
+            class="btn-danger"
+            :disabled="isLeavingGroup"
+            @click="leaveGroup"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            {{ isLeavingGroup ? 'Uscita in corso...' : 'Abbandona Gruppo' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL INOLTRA MESSAGGIO -->
+    <div v-if="showForwardModal" class="modal-overlay" @click.self="closeForwardModal">
+      <div class="modal-card modal-forward-card">
+        <div class="modal-card-header">
+          <h2 class="modal-title">Inoltra messaggio</h2>
+          <button type="button" class="btn-close-modal" @click="closeForwardModal">✕</button>
+        </div>
+
+        <!-- Anteprima messaggio da inoltrare -->
+        <div v-if="messageToForward" class="forward-msg-preview-card">
+          <div class="forward-msg-preview-label">Contenuto da inoltrare:</div>
+          <div class="forward-msg-preview-content">
+            <span v-if="isMessagePhoto(getParsedMessage(messageToForward).text)" class="photo-indicator">
+              📷 Foto: {{ getParsedMessage(messageToForward).text }}
+            </span>
+            <span v-else>{{ getMessageSnippet(getParsedMessage(messageToForward).text, 140) }}</span>
+          </div>
+        </div>
+
+        <!-- Barra di ricerca chat per inoltro -->
+        <input 
+          v-model="forwardSearchQuery"
+          type="text"
+          placeholder="Cerca conversazione o gruppo a cui inoltrare..."
+          class="modal-input modal-input-compact"
+        />
+
+        <!-- Messaggi di errore o successo -->
+        <p v-if="forwardSuccess" class="success-msg">{{ forwardSuccess }}</p>
+        <p v-if="forwardError" class="error-msg">{{ forwardError }}</p>
+
+        <!-- Lista conversazioni destinatarie -->
+        <div class="forward-chats-list">
+          <div 
+            v-for="chat in forwardableChats" 
+            :key="chat.chatId"
+            class="forward-chat-row"
+            @click="forwardToChat(chat)"
+          >
+            <img :src="chat.photo || '/default.png'" class="forward-chat-avatar" alt="Foto chat" />
+            <div class="forward-chat-meta">
+              <div class="forward-chat-title">{{ chat.name }}</div>
+              <span v-if="chat.isGroup" class="chat-header-badge">Gruppo</span>
+            </div>
+            <button 
+              type="button" 
+              class="btn-action-small btn-primary-small"
+              :disabled="isForwarding"
+            >
+              {{ isForwarding && targetForwardChatId === chat.chatId ? 'Invio...' : 'Inoltra' }}
+            </button>
+          </div>
+
+          <div v-if="forwardableChats.length === 0" class="no-chats-found">
+            Nessun'altra conversazione disponibile
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" @click="closeForwardModal">Chiudi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL INVIO FOTO -->
+    <div v-if="showPhotoModal" class="modal-overlay" @click.self="closePhotoModal">
+      <div class="modal-card modal-photo-card">
+        <div class="modal-card-header">
+          <h2 class="modal-title">Invia foto</h2>
+          <button type="button" class="btn-close-modal" @click="closePhotoModal" title="Chiudi">✕</button>
+        </div>
+
+        <p class="modal-photo-desc">Incolla il link (URL) dell'immagine da inviare nella conversazione:</p>
+
+        <!-- Anteprima real-time della foto se inserita -->
+        <div v-if="newPhotoUrl.trim()" class="modal-photo-preview-wrap">
+          <img 
+            :src="newPhotoUrl.trim()" 
+            class="modal-photo-preview-img" 
+            alt="Anteprima foto" 
+            @error="onPhotoPreviewError"
+          />
+        </div>
+
+        <input 
+          ref="photoUrlInput"
+          v-model="newPhotoUrl"
+          type="url"
+          placeholder="https://esempio.com/foto.jpg"
+          class="modal-input"
+          @keyup.enter="sendPhotoMessage"
+        />
+
+        <p v-if="photoErrorMsg" class="error-msg">{{ photoErrorMsg }}</p>
+
+        <div class="modal-buttons">
+          <button 
+            type="button" 
+            class="btn-primary" 
+            :disabled="isSendingPhoto || !newPhotoUrl.trim()" 
+            @click="sendPhotoMessage"
+          >
+            {{ isSendingPhoto ? 'Invio in corso...' : 'Invia' }}
+          </button>
+          <button type="button" class="btn-secondary" @click="closePhotoModal">Annulla</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -127,7 +712,53 @@ export default {
       selectedChat: null,
       selectedChatId: null,
       newMessage: "",
-      userId: localStorage.getItem("userId")
+      userId: localStorage.getItem("userId") || localStorage.getItem("token"),
+      // Stato modale Nuovo Gruppo
+      showCreateGroup: false,
+      groupName: "",
+      groupPhoto: "",
+      userToAdd: "",
+      selectedParticipants: [],
+      groupErrorMsg: "",
+      isCreatingGroup: false,
+
+      // Stato modale Gestione Gruppo
+      showGroupSettings: false,
+      editGroupName: "",
+      editGroupPhoto: "",
+      newMemberUsername: "",
+      groupSettingsError: "",
+      groupSettingsSuccess: "",
+      isSavingGroupName: false,
+      isSavingGroupPhoto: false,
+      isAddingMember: false,
+      isLeavingGroup: false,
+
+      // Reazioni (4 emoji: 👍, ❤️, 😂, 😮)
+      reactionEmojis: ['👍', '❤️', '😂', '😮'],
+      activeEmojiPickerMessageId: null,
+      userCache: {},
+
+      // Risposte
+      replyingToMessage: null,
+
+      // Inoltro
+      showForwardModal: false,
+      messageToForward: null,
+      forwardSearchQuery: "",
+      forwardSuccess: "",
+      forwardError: "",
+      isForwarding: false,
+      targetForwardChatId: null,
+
+      // Invio foto
+      showPhotoModal: false,
+      newPhotoUrl: "",
+      photoErrorMsg: "",
+      isSendingPhoto: false,
+
+      // Messaggi eliminati (tombstones)
+      deletedMessageIds: new Set()
     };
   },
 
@@ -135,6 +766,15 @@ export default {
     sortedChats() {
       return [...this.chats].sort((a, b) => {
         return new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0);
+      });
+    },
+
+    forwardableChats() {
+      const q = this.forwardSearchQuery.trim().toLowerCase();
+      return this.chats.filter(c => {
+        const isNotCurrent = c.chatId !== this.selectedChatId;
+        const matchesQuery = !q || (c.name && c.name.toLowerCase().includes(q));
+        return isNotCurrent && matchesQuery;
       });
     }
   },
@@ -156,11 +796,42 @@ export default {
 
         const messages = Array.isArray(response.data) ? response.data : [];
 
+        // Conserva i tombstones dei messaggi eliminati per questa chat
+        const existingDeleted = (this.selectedChat && this.selectedChat.chatId === chatId) 
+          ? (this.selectedChat.messages || []).filter(m => this.isMessageDeleted(m))
+          : [];
+        for (const delMsg of existingDeleted) {
+          if (!messages.some(m => String(m.id) === String(delMsg.id))) {
+            messages.push(delMsg);
+          }
+        }
+        messages.sort((a, b) => new Date(a.instant || 0) - new Date(b.instant || 0));
+
+        // Popola la cache degli utenti a partire dai messaggi caricati
+        for (const msg of messages) {
+          const sId = (msg.sender || msg.userId || msg.idSender || "").toString().trim();
+          const sName = (msg.senderUsername || msg.senderName || "").toString().trim();
+          if (sId && sName && sName !== sId) {
+            this.userCache[sId] = sName;
+          }
+        }
+
+        const currentChatInfo = this.chats.find(c => c.chatId === chatId);
+        if (currentChatInfo) {
+          currentChatInfo.hasUnread = false;
+          currentChatInfo.unreadCount = 0;
+        }
+
         this.selectedChat = {
           chatId,
-          name: this.chats.find(c => c.chatId === chatId)?.name || "Chat",
+          name: currentChatInfo?.name || "Chat",
+          photo: currentChatInfo?.photo || "",
+          isGroup: Boolean(currentChatInfo?.isGroup ?? currentChatInfo?.type),
+          participants: currentChatInfo?.participants || [],
           messages
         };
+
+        this.scrollToBottom();
 
       } catch (err) {
         console.log("Errore apertura chat:", err);
@@ -169,7 +840,19 @@ export default {
 
     formatTime(timeString) {
       if (!timeString) return "";
-      const date = new Date(timeString);
+      let str = timeString.toString().trim();
+      if (!str) return "";
+
+      // Normalizzazione data: se proviene da SQLite "YYYY-MM-DD HH:mm:ss", aggiunge T e Z per UTC
+      if (!str.includes("T") && str.includes(" ")) {
+        str = str.replace(" ", "T") + "Z";
+      } else if (str.includes("T") && !str.endsWith("Z") && !str.includes("+") && !str.includes("-", 10)) {
+        str += "Z";
+      }
+
+      const date = new Date(str);
+      if (isNaN(date.getTime())) return "";
+
       return date.toLocaleTimeString("it-IT", {
         hour: "2-digit",
         minute: "2-digit"
@@ -184,10 +867,28 @@ export default {
           }
         });
 
-        this.chats = response.data.map(chat => ({
-          ...chat,
-          displayName: chat.name
-        }));
+        const rawList = Array.isArray(response.data) ? response.data : [];
+        const seenIds = new Set();
+        const uniqueChats = [];
+
+        for (const chat of rawList) {
+          const id = chat.chatId || chat.id;
+          if (id && !seenIds.has(id)) {
+            seenIds.add(id);
+            const isSelected = id === this.selectedChatId;
+            uniqueChats.push({
+              ...chat,
+              chatId: id,
+              isGroup: Boolean(chat.isGroup ?? chat.type),
+              displayName: chat.name,
+              lastMessageUserId: chat.lastMessageUserId || "",
+              hasUnread: isSelected ? false : Boolean(chat.hasUnread || (chat.unreadCount && chat.unreadCount > 0)),
+              unreadCount: isSelected ? 0 : (chat.unreadCount || (chat.hasUnread ? 1 : 0))
+            });
+          }
+        }
+
+        this.chats = uniqueChats;
 
       } catch (err) {
         console.log("Errore caricamento chat:", err);
@@ -214,7 +915,11 @@ export default {
           }
         );
 
-        this.chats.unshift(response.data);
+        await this.loadChats();
+        const newChatId = response.data.chatId || response.data.id;
+        if (newChatId) {
+          await this.openChat(newChatId);
+        }
         this.closeCreateChat();
 
       } catch (err) {
@@ -225,10 +930,29 @@ export default {
     async sendMessage() {
       if (this.newMessage.trim() === "") return;
 
+      let messageText = this.newMessage.trim();
+
+      // Se stiamo rispondendo a un messaggio, incorporiamo lo snippet del testo originale
+      if (this.replyingToMessage) {
+        const parsedOriginal = this.getParsedMessage(this.replyingToMessage);
+        const isPhoto = this.isMessagePhoto(parsedOriginal.text);
+        const snippet = isPhoto ? "" : this.getMessageSnippet(parsedOriginal.text, 80);
+
+        messageText = JSON.stringify({
+          replyTo: {
+            id: this.replyingToMessage.id,
+            sender: this.getSenderName(this.replyingToMessage),
+            text: snippet,
+            isPhoto
+          },
+          text: this.newMessage.trim()
+        });
+      }
+
       try {
         await this.$axios.post(
           `/chats/${this.selectedChatId}/messages`,
-          { text: this.newMessage },
+          { text: messageText },
           {
             headers: {
               Authorization: "Bearer " + localStorage.getItem("token")
@@ -237,30 +961,1079 @@ export default {
         );
 
         this.newMessage = "";
+        this.replyingToMessage = null;
         await this.openChat(this.selectedChatId);
+        this.scrollToBottom();
 
       } catch (err) {
         console.log("Errore invio messaggio:", err);
       }
     },
 
+  openPhotoModal() {
+      this.newPhotoUrl = "";
+      this.photoErrorMsg = "";
+      this.showPhotoModal = true;
+      this.$nextTick(() => {
+        if (this.$refs.photoUrlInput) {
+          this.$refs.photoUrlInput.focus();
+        }
+      });
+    },
+
+    closePhotoModal() {
+      this.showPhotoModal = false;
+      this.newPhotoUrl = "";
+      this.photoErrorMsg = "";
+      this.isSendingPhoto = false;
+    },
+
+    onPhotoPreviewError() {
+      // Fallback opzionale se l'immagine non può essere caricata
+    },
+
+    async sendPhotoMessage() {
+      const url = this.newPhotoUrl.trim();
+      if (!url) {
+        this.photoErrorMsg = "Inserisci l'URL di un'immagine";
+        return;
+      }
+
+      let messageText = url;
+
+      // Se stiamo rispondendo a un messaggio, incorporiamo lo snippet del testo originale
+      if (this.replyingToMessage) {
+        const parsedOriginal = this.getParsedMessage(this.replyingToMessage);
+        const isPhoto = this.isMessagePhoto(parsedOriginal.text);
+        const snippet = isPhoto ? "" : this.getMessageSnippet(parsedOriginal.text, 80);
+
+        messageText = JSON.stringify({
+          replyTo: {
+            id: this.replyingToMessage.id,
+            sender: this.getSenderName(this.replyingToMessage),
+            text: snippet,
+            isPhoto
+          },
+          text: url
+        });
+      }
+
+      this.isSendingPhoto = true;
+      this.photoErrorMsg = "";
+
+      try {
+        await this.$axios.post(
+          `/chats/${this.selectedChatId}/messages`,
+          {
+            text: messageText,
+            type: "photo",
+            url: url
+          },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.closePhotoModal();
+        this.replyingToMessage = null;
+        await this.openChat(this.selectedChatId);
+        await this.loadChats();
+        this.scrollToBottom();
+
+      } catch (err) {
+        this.photoErrorMsg = err.response?.data || "Errore durante l'invio della foto";
+      } finally {
+        this.isSendingPhoto = false;
+      }
+    },
+
+    isChatUnread(chat) {
+      if (!chat) return false;
+      // Se la chat è aperta, considerala già visualizzata
+      if (chat.chatId === this.selectedChatId) return false;
+
+      // Se l'ultimo messaggio è stato inviato dall'utente loggato, non è un messaggio ricevuto non letto
+      const myId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
+      if (chat.lastMessageUserId && myId && String(chat.lastMessageUserId) === String(myId)) {
+        return false;
+      }
+
+      return Boolean(chat.hasUnread || (chat.unreadCount && chat.unreadCount > 0));
+    },
+
+    isChatLastMessagePhoto(text) {
+      if (!text) return false;
+      const t = String(text).trim();
+      if (t === "Questo messaggio è stato eliminato") return false;
+      const parsed = this.getParsedMessage({ text });
+      const target = parsed.text || text;
+      if (String(target).trim() === "Questo messaggio è stato eliminato") return false;
+      return this.isMessagePhoto(target);
+    },
+
+    formatChatLastMessage(text) {
+      if (!text) return "";
+      const t = String(text).trim();
+      if (t === "Questo messaggio è stato eliminato") {
+        return "Questo messaggio è stato eliminato";
+      }
+      const parsed = this.getParsedMessage({ text });
+      const target = parsed.text || text;
+      if (String(target).trim() === "Questo messaggio è stato eliminato") {
+        return "Questo messaggio è stato eliminato";
+      }
+      if (this.isMessagePhoto(target)) {
+        return "📷 Foto";
+      }
+      if (parsed.reply) {
+        return target || "Risposta";
+      }
+      return target;
+    },
+
+    isMessagePhoto(text) {
+      if (!text || typeof text !== "string") return false;
+      const t = text.trim();
+      if (t.startsWith("{") && t.endsWith("}")) {
+        try {
+          const parsed = JSON.parse(t);
+          if (parsed.type === "photo" || parsed.isPhoto || (parsed.url && parsed.type === "photo")) {
+            return true;
+          }
+        } catch (e) {}
+      }
+      return (
+        /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg|bmp|avif)(\?.*)?)$/i.test(t) ||
+        /^data:image\//i.test(t) ||
+        (/^(https?:\/\/[^\s]+)$/i.test(t) && (
+          /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|$)/i.test(t) ||
+          /(?:image|photo|pic|avatar|placeholder|unsplash|imgur|cloudinary)/i.test(t)
+        ))
+      );
+    },
+
+    getMessagePhotoUrl(text) {
+      if (!text || typeof text !== "string") return "";
+      const t = text.trim();
+      if (t.startsWith("{") && t.endsWith("}")) {
+        try {
+          const parsed = JSON.parse(t);
+          if (parsed.url) return parsed.url;
+          if (parsed.text) return parsed.text;
+        } catch (e) {}
+      }
+      return t;
+    },
+
+    getParsedMessage(msg) {
+      if (!msg || !msg.text) return { reply: null, text: "" };
+      const raw = msg.text;
+      if (typeof raw === "string" && (raw.startsWith('{"replyTo"') || raw.startsWith('{"_reply"'))) {
+        try {
+          const parsed = JSON.parse(raw);
+          return {
+            reply: parsed.replyTo || parsed._reply || null,
+            text: parsed.text || ""
+          };
+        } catch (e) {
+          // fallback su stringa pura
+        }
+      }
+      return { reply: null, text: raw };
+    },
+
+    getMessageSnippet(text, maxLen = 60) {
+      if (!text) return "";
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      if (cleaned.length <= maxLen) return cleaned;
+      return cleaned.slice(0, maxLen) + "...";
+    },
+
+    getUserDisplayName(userId) {
+      if (!userId) return "Utente";
+      const uStr = userId.toString().trim();
+      const currentId = (this.userId || localStorage.getItem("userId") || localStorage.getItem("token") || "").toString().trim();
+      const currentUsername = (localStorage.getItem("username") || "").toString().trim();
+
+      if (uStr === currentId || (currentUsername && uStr === currentUsername)) {
+        return "Tu";
+      }
+
+      // 1. Controlla nella cache locale degli utenti conosciuti
+      if (this.userCache && this.userCache[uStr]) {
+        return this.userCache[uStr];
+      }
+
+      // 2. Cerca tra i messaggi caricati della chat corrente
+      if (this.selectedChat && this.selectedChat.messages) {
+        const foundMsg = this.selectedChat.messages.find(
+          m => (m.sender === uStr || m.userId === uStr || m.idSender === uStr) && (m.senderUsername || m.senderName)
+        );
+        if (foundMsg) {
+          const name = foundMsg.senderUsername || foundMsg.senderName;
+          this.userCache[uStr] = name;
+          return name;
+        }
+      }
+
+      // 3. Se è una chat 1-a-1, l'altro utente coincide con il nome della chat
+      const isGroup = this.selectedChat?.isGroup || this.chats.find(c => c.chatId === this.selectedChatId)?.isGroup;
+      if (!isGroup && this.selectedChat && this.selectedChat.name) {
+        this.userCache[uStr] = this.selectedChat.name;
+        return this.selectedChat.name;
+      }
+
+      // 4. Cerca tra i partecipanti della chat se disponibili
+      if (this.selectedChat && this.selectedChat.participants) {
+        const p = this.selectedChat.participants.find(
+          x => (x.userId === uStr || x.id === uStr || x.name === uStr || x.username === uStr)
+        );
+        if (p && (p.name || p.username)) {
+          const name = p.name || p.username;
+          this.userCache[uStr] = name;
+          return name;
+        }
+      }
+
+      // 5. Cerca nella lista delle conversazioni
+      const chatMatch = this.chats.find(c => c.chatId === uStr || c.name === uStr);
+      if (chatMatch && chatMatch.name) {
+        this.userCache[uStr] = chatMatch.name;
+        return chatMatch.name;
+      }
+
+      return uStr;
+    },
+
+    getGroupedReactions(msg) {
+      if (!msg.comments || !msg.comments.length) return [];
+      const currentId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
+      const groups = new Map();
+
+      for (const comment of msg.comments) {
+        const emoji = comment.emoji;
+        if (!groups.has(emoji)) {
+          groups.set(emoji, {
+            emoji,
+            comments: [],
+            names: [],
+            hasMyReaction: false,
+            myCommentId: null
+          });
+        }
+        const g = groups.get(emoji);
+        g.comments.push(comment);
+
+        const senderId = comment.sender || comment.idSender || comment.userId;
+        const isMine = senderId === currentId;
+        if (isMine) {
+          g.hasMyReaction = true;
+          g.myCommentId = comment.id;
+          g.names.push("Tu");
+        } else {
+          g.names.push(this.getUserDisplayName(senderId));
+        }
+      }
+
+      return Array.from(groups.values());
+    },
+
+    getUserReaction(msg) {
+      if (!msg || !msg.comments) return null;
+      const currentId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
+      return msg.comments.find(
+        c => c.sender === currentId || c.idSender === currentId || c.userId === currentId
+      );
+    },
+
+    hasUserReactedWith(msg, emoji) {
+      const userReaction = this.getUserReaction(msg);
+      return userReaction && userReaction.emoji === emoji;
+    },
+
+    toggleEmojiPicker(messageId) {
+      if (this.activeEmojiPickerMessageId === messageId) {
+        this.activeEmojiPickerMessageId = null;
+      } else {
+        this.activeEmojiPickerMessageId = messageId;
+      }
+    },
+
+    closeEmojiPicker() {
+      this.activeEmojiPickerMessageId = null;
+    },
+
+    async handleEmojiSelect(msg, emoji) {
+      this.closeEmojiPicker();
+      const existingReaction = this.getUserReaction(msg);
+
+      // Cliccando sulla stessa reazione: la rimuove (uncommentMessage)
+      if (existingReaction && existingReaction.emoji === emoji) {
+        await this.removeReaction(msg, existingReaction.id);
+        return;
+      }
+
+      // Se l'utente ha già una reazione diversa: la rimuove prima (massimo 1 reazione per utente)
+      if (existingReaction) {
+        await this.removeReaction(msg, existingReaction.id);
+      }
+
+      // Aggiunge la nuova reazione (commentMessage)
+      await this.addReaction(msg, emoji);
+    },
+
+    async addReaction(msg, emoji) {
+      try {
+        const response = await this.$axios.post(
+          `/chats/${this.selectedChatId}/messages/${msg.id}/comments`,
+          { emoji },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        const currentId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
+        const currentUsername = localStorage.getItem("username") || "Tu";
+        const newComment = {
+          id: response.data?.id || ("temp-" + Date.now()),
+          emoji,
+          sender: currentId,
+          senderUsername: currentUsername,
+          senderName: currentUsername,
+          idSender: currentId,
+          userId: currentId,
+          messageId: msg.id
+        };
+
+        const list = Array.isArray(msg.comments) ? [...msg.comments] : [];
+        list.push(newComment);
+        msg.comments = list;
+      } catch (err) {
+        console.error("Errore aggiunta reazione:", err);
+      }
+    },
+
+    async removeReaction(msg, commentId) {
+      try {
+        await this.$axios.delete(
+          `/chats/${this.selectedChatId}/messages/${msg.id}/comments/${commentId}`,
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        if (msg.comments) {
+          msg.comments = msg.comments.filter(c => c.id !== commentId);
+        }
+      } catch (err) {
+        console.error("Errore rimozione reazione:", err);
+      }
+    },
+
+    getReactionSenderName(comment) {
+      if (!comment) return "Utente";
+
+      // 1. Se coincide con l'utente attualmente loggato, mostra "Tu"
+      if (this.isMyReactionComment(comment)) {
+        return "Tu";
+      }
+
+      // 2. Verifica se sender è un oggetto User come da specifica OpenAPI (comment.sender.name o comment.sender.username)
+      if (typeof comment.sender === "object" && comment.sender !== null) {
+        if (comment.sender.name && comment.sender.name.trim() !== "") {
+          return comment.sender.name;
+        }
+        if (comment.sender.username && comment.sender.username.trim() !== "") {
+          return comment.sender.username;
+        }
+      }
+
+      // 3. Verifica se l'oggetto commento ha campi username/name arricchiti
+      if (comment.senderUsername && comment.senderUsername.trim() !== "" && comment.senderUsername !== comment.sender) {
+        return comment.senderUsername;
+      }
+      if (comment.senderName && comment.senderName.trim() !== "" && comment.senderName !== comment.sender) {
+        return comment.senderName;
+      }
+      if (comment.username && comment.username.trim() !== "" && comment.username !== comment.sender) {
+        return comment.username;
+      }
+      if (comment.name && comment.name.trim() !== "" && comment.name !== comment.sender) {
+        return comment.name;
+      }
+
+      // 4. Estrae l'identificatore del mittente
+      const senderId = (
+        (typeof comment.sender === "object" ? (comment.sender?.userId || comment.sender?.id) : comment.sender) ||
+        comment.idSender ||
+        comment.userId ||
+        ""
+      ).toString().trim();
+
+      if (!senderId) return "Utente";
+
+      // 5. Risoluzione tramite funzione di mappatura utenti
+      return this.getUserDisplayName(senderId);
+    },
+
+    isMyReactionComment(comment) {
+      if (!comment) return false;
+      const senderId = (
+        (typeof comment.sender === "object" ? (comment.sender?.userId || comment.sender?.id) : comment.sender) ||
+        comment.idSender ||
+        comment.userId ||
+        ""
+      ).toString().trim();
+
+      const currentId = (this.userId || localStorage.getItem("userId") || localStorage.getItem("token") || "").toString().trim();
+      const currentUsername = (localStorage.getItem("username") || "").toString().trim();
+
+      if (currentId && senderId === currentId) {
+        return true;
+      }
+      if (currentUsername) {
+        const commentName = (
+          (typeof comment.sender === "object" ? (comment.sender?.name || comment.sender?.username) : "") ||
+          comment.senderUsername ||
+          comment.senderName ||
+          comment.username ||
+          comment.name ||
+          ""
+        ).toString().trim();
+        if (commentName && (commentName === currentUsername || senderId === currentUsername)) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    async handleCommentClick(msg, comment) {
+      if (this.isMyReactionComment(comment)) {
+        await this.removeReaction(msg, comment.id);
+      }
+    },
+
+    startReply(msg) {
+      this.replyingToMessage = msg;
+      this.$nextTick(() => {
+        this.$refs.messageInput?.focus();
+      });
+    },
+
+    cancelReply() {
+      this.replyingToMessage = null;
+    },
+
+    openForwardModal(msg) {
+      this.messageToForward = msg;
+      this.forwardSearchQuery = "";
+      this.forwardSuccess = "";
+      this.forwardError = "";
+      this.showForwardModal = true;
+    },
+
+    closeForwardModal() {
+      this.showForwardModal = false;
+      this.messageToForward = null;
+      this.forwardSearchQuery = "";
+      this.forwardSuccess = "";
+      this.forwardError = "";
+      this.isForwarding = false;
+      this.targetForwardChatId = null;
+    },
+
+    async forwardToChat(targetChat) {
+      if (!this.messageToForward || !targetChat) return;
+      this.isForwarding = true;
+      this.targetForwardChatId = targetChat.chatId;
+      this.forwardError = "";
+      this.forwardSuccess = "";
+
+      try {
+        await this.$axios.post(
+          `/chats/${this.selectedChatId}/messages/${this.messageToForward.id}/forward`,
+          { userId: targetChat.chatId },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.forwardSuccess = `Messaggio inoltrato con successo a "${targetChat.name}"!`;
+        setTimeout(() => {
+          this.closeForwardModal();
+        }, 800);
+      } catch (err) {
+        this.forwardError = err.response?.data || "Errore durante l'inoltro del messaggio";
+      } finally {
+        this.isForwarding = false;
+        this.targetForwardChatId = null;
+      }
+    },
+
+    isMyMessage(message) {
+      if (!message) return false;
+      const currentId = (this.userId || localStorage.getItem("userId") || localStorage.getItem("token") || "").toString().trim();
+      const currentUsername = (localStorage.getItem("username") || "").toString().trim();
+
+      const sender = (message.sender || message.userId || message.idSender || "").toString().trim();
+      const senderUsername = (message.senderUsername || message.senderName || "").toString().trim();
+
+      if (currentId && (sender === currentId || senderUsername === currentId)) {
+        return true;
+      }
+      if (currentUsername && (sender === currentUsername || senderUsername === currentUsername)) {
+        return true;
+      }
+      return false;
+    },
+
+    isMessageDeleted(message) {
+      if (!message) return false;
+      if (message.isDeleted) return true;
+      if (this.deletedMessageIds && this.deletedMessageIds.has(String(message.id))) return true;
+      const text = (message.text || "").toString().trim();
+      return text === "Questo messaggio è stato eliminato";
+    },
+
+    async deleteMessage(messageOrId) {
+      console.log("[deleteMessage] Click evento eliminazione ricevuto:", messageOrId);
+
+      const targetMsg = (typeof messageOrId === 'object' && messageOrId !== null)
+        ? messageOrId
+        : (this.selectedChat?.messages || []).find(m => String(m.id) === String(messageOrId));
+
+      const messageId = targetMsg?.id || (typeof messageOrId === 'string' || typeof messageOrId === 'number' ? String(messageOrId) : null);
+      const chatId = this.selectedChatId || (this.selectedChat && this.selectedChat.chatId) || targetMsg?.chatId;
+
+      console.log("[deleteMessage] Dettagli parametri:", { messageId, chatId, targetMsg });
+
+      if (!messageId) {
+        console.error("[deleteMessage] Errore: messageId non trovato per", messageOrId);
+        return;
+      }
+      if (!chatId) {
+        console.error("[deleteMessage] Errore: chatId non trovato!");
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        console.log(`[deleteMessage] Invio richiesta API: DELETE /chats/${chatId}/messages/${messageId}`);
+
+        const response = await this.$axios.delete(`/chats/${chatId}/messages/${messageId}`, {
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        });
+
+        console.log(`[deleteMessage] Chiamata API completata con successo. Status:`, response?.status);
+
+        // Aggiornamento reattivo dell'interfaccia (Tombstone)
+        this.markMessageAsDeleted(messageId);
+      } catch (err) {
+        console.error("[deleteMessage] Errore durante l'eliminazione:", err);
+        if (err.response) {
+          console.error("[deleteMessage] Errore risposta server:", {
+            status: err.response.status,
+            data: err.response.data
+          });
+        }
+      }
+    },
+
+    deleteMessageHandler(messageOrId) {
+      return this.deleteMessage(messageOrId);
+    },
+
+    markMessageAsDeleted(messageId) {
+      const idStr = String(messageId);
+      if (!this.deletedMessageIds) {
+        this.deletedMessageIds = new Set();
+      }
+      this.deletedMessageIds.add(idStr);
+
+      if (this.selectedChat && Array.isArray(this.selectedChat.messages)) {
+        const idx = this.selectedChat.messages.findIndex(m => String(m.id) === idStr);
+        if (idx !== -1) {
+          const old = this.selectedChat.messages[idx];
+          const updated = {
+            ...old,
+            text: "Questo messaggio è stato eliminato",
+            isDeleted: true,
+            comments: [],
+            forwarded: false,
+            photo: null,
+            url: null
+          };
+          // Aggiornamento reattivo profondo con splice + riassegnazione array
+          this.selectedChat.messages.splice(idx, 1, updated);
+          this.selectedChat.messages = [...this.selectedChat.messages];
+          console.log("[markMessageAsDeleted] Messaggio aggiornato reattivamente nell'array:", updated);
+        } else {
+          console.warn("[markMessageAsDeleted] Messaggio con id non trovato nell'array:", idStr);
+        }
+      }
+
+      if (this.replyingToMessage && String(this.replyingToMessage.id) === idStr) {
+        this.replyingToMessage = null;
+      }
+
+      // Se il messaggio eliminato è l'ultimo della chat selezionata, aggiorna anche la preview nella sidebar
+      const currentChat = this.chats.find(c => c.chatId === this.selectedChatId);
+      if (currentChat && this.selectedChat && Array.isArray(this.selectedChat.messages) && this.selectedChat.messages.length > 0) {
+        const lastMsg = this.selectedChat.messages[this.selectedChat.messages.length - 1];
+        if (String(lastMsg.id) === idStr) {
+          currentChat.lastMessage = "Questo messaggio è stato eliminato";
+        }
+      }
+    },
+
+    getSenderName(message) {
+      if (!message) return "";
+      if (message.senderUsername && message.senderUsername.trim() !== "") {
+        return message.senderUsername;
+      }
+      if (message.senderName && message.senderName.trim() !== "") {
+        return message.senderName;
+      }
+      if (message.author && message.author.trim() !== "") {
+        return message.author;
+      }
+
+      // Nelle chat 1-a-1, il mittente dei messaggi ricevuti è l'altro utente (nome della chat)
+      const isGroup = this.selectedChat?.isGroup || this.chats.find(c => c.chatId === this.selectedChatId)?.isGroup;
+      if (!isGroup && this.selectedChat && this.selectedChat.name) {
+        return this.selectedChat.name;
+      }
+
+      return message.sender || "Utente";
+    },
+
+    /**
+     * Determina se un messaggio inviato dall'utente corrente è stato letto da tutti i destinatari:
+     * - Nelle chat 1-a-1: non appena l'altro utente visualizza il messaggio (state === 2).
+     * - Nei gruppi: solo ed esclusivamente quando tutti i membri del gruppo (escluso me) lo hanno visualizzato.
+     */
+    isMessageRead(msg) {
+      if (!msg) return false;
+
+      // Nello standard WASAText / OpenAPI, state === 2 indica messaggio letto da tutti i destinatari
+      if (msg.state === 2) {
+        return true;
+      }
+
+      // Supporto se il backend fornisce la lista esplicita dei lettori (readBy / readers / readUsers)
+      const rawReaders = msg.readBy || msg.readers || msg.readUsers;
+      if (Array.isArray(rawReaders) && rawReaders.length > 0) {
+        const myId = (this.userId || localStorage.getItem("userId") || "").toString().trim();
+        const myUsername = (localStorage.getItem("username") || "").toString().trim();
+
+        // Escludi il mittente (me stesso) dai lettori
+        const otherReaders = rawReaders.filter(r => {
+          const rId = (typeof r === "object" ? (r.userId || r.id || r.username || r.name) : r).toString().trim();
+          return rId !== myId && rId !== myUsername;
+        });
+
+        const isGroup = Boolean(this.selectedChat?.isGroup);
+
+        if (!isGroup) {
+          // Chat 1-a-1: l'altro utente ha letto
+          return otherReaders.length >= 1;
+        } else {
+          // Nei gruppi: tutti i membri del gruppo (escluso me) devono aver letto
+          const participants = this.selectedChat?.participants || [];
+          const otherParticipants = participants.filter(p => {
+            const pId = (typeof p === "object" ? (p.userId || p.id || p.username || p.name) : p).toString().trim();
+            return pId !== myId && pId !== myUsername;
+          });
+
+          if (otherParticipants.length > 0) {
+            return otherReaders.length >= otherParticipants.length;
+          }
+
+          if (msg.totalRecipients && msg.readCount) {
+            return msg.readCount >= msg.totalRecipients;
+          }
+        }
+      }
+
+      // Se state === 1 (Ricevuto/Consegnato) o stato 0, o non tutti hanno ancora letto, resta singola spunta
+      return false;
+    },
+
+    getStatusClass(target) {
+      // Supporta sia l'oggetto messaggio che il valore numerico di state
+      if (typeof target === "object" && target !== null) {
+        if (this.isMessageRead(target)) return "status-read";
+        if (target.state === 1) return "status-received";
+        return "status-sent";
+      }
+      if (target === 2) return "status-read";
+      if (target === 1) return "status-received";
+      return "status-sent";
+    },
+
+    getStatusTitle(target) {
+      if (typeof target === "object" && target !== null) {
+        if (this.isMessageRead(target)) {
+          return this.selectedChat?.isGroup ? "Letto da tutti i partecipanti" : "Letto";
+        }
+        if (target.state === 1) return "Consegnato / Ricevuto";
+        return "Inviato";
+      }
+      if (target === 2) return "Letto";
+      if (target === 1) return "Ricevuto";
+      return "Inviato";
+    },
+
+    async pollActiveChatMessages() {
+      if (!this.selectedChatId) return;
+
+      try {
+        const response = await this.$axios.get(`/chats/${this.selectedChatId}/messages`, {
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token")
+          }
+        });
+
+        const newMessages = Array.isArray(response.data) ? response.data : [];
+
+        // Verifica che la chat selezionata sia ancora la stessa al completamento della richiesta
+        if (this.selectedChat && this.selectedChat.chatId === this.selectedChatId) {
+          const oldLen = this.selectedChat.messages ? this.selectedChat.messages.length : 0;
+
+          // Conserva i messaggi eliminati (tombstones)
+          const existingDeleted = (this.selectedChat.messages || []).filter(m => this.isMessageDeleted(m));
+          const merged = [...newMessages];
+          for (const delMsg of existingDeleted) {
+            if (!merged.some(m => String(m.id) === String(delMsg.id))) {
+              merged.push(delMsg);
+            }
+          }
+          merged.sort((a, b) => new Date(a.instant || 0) - new Date(b.instant || 0));
+
+          // Assegna il nuovo array reattivamente
+          this.selectedChat.messages = merged;
+
+          // Se sono arrivati nuovi messaggi dall'esterno, scorre in fondo
+          if (merged.length > oldLen) {
+            this.scrollToBottom();
+          }
+        }
+      } catch (err) {
+        // Ignora silenziosamente errori transitori di polling
+      }
+    },
+
+    scrollToBottom() {
+      this.$nextTick(() => {
+        const container = this.$refs.messagesContainer;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+    },
+
     closeCreateChat() {
       this.showCreateChat = false;
       this.newChatUsername = "";
       this.errorMsg = "";
+    },
+
+    openCreateGroupModal() {
+      this.showCreateGroup = true;
+      this.groupName = "";
+      this.groupPhoto = "";
+      this.userToAdd = "";
+      this.selectedParticipants = [];
+      this.groupErrorMsg = "";
+      this.isCreatingGroup = false;
+    },
+
+    closeCreateGroup() {
+      this.showCreateGroup = false;
+      this.groupName = "";
+      this.groupPhoto = "";
+      this.userToAdd = "";
+      this.selectedParticipants = [];
+      this.groupErrorMsg = "";
+      this.isCreatingGroup = false;
+    },
+
+    addParticipant() {
+      const u = this.userToAdd.trim();
+      if (!u) return;
+      if (this.selectedParticipants.includes(u)) {
+        this.groupErrorMsg = `L'utente "${u}" è già stato aggiunto`;
+        return;
+      }
+      this.selectedParticipants.push(u);
+      this.userToAdd = "";
+      this.groupErrorMsg = "";
+    },
+
+    removeParticipant(username) {
+      this.selectedParticipants = this.selectedParticipants.filter(u => u !== username);
+    },
+
+
+
+    async createGroup() {
+      if (this.groupName.trim() === "") {
+        this.groupErrorMsg = "Inserisci il nome del gruppo";
+        return;
+      }
+      if (this.groupName.trim().length < 3 || this.groupName.trim().length > 25) {
+        this.groupErrorMsg = "Il nome del gruppo deve essere tra 3 e 25 caratteri";
+        return;
+      }
+
+      this.isCreatingGroup = true;
+      this.groupErrorMsg = "";
+
+      try {
+        const response = await this.$axios.post(
+          "/chats",
+          {
+            type: true,
+            isGroup: true,
+            name: this.groupName.trim(),
+            photo: this.groupPhoto.trim(),
+            participants: this.selectedParticipants
+          },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        await this.loadChats();
+        const newChatId = response.data.chatId || response.data.id;
+        if (newChatId) {
+          await this.openChat(newChatId);
+        }
+
+        this.closeCreateGroup();
+      } catch (err) {
+        this.groupErrorMsg = err.response?.data || "Errore durante la creazione del gruppo";
+      } finally {
+        this.isCreatingGroup = false;
+      }
+    },
+
+    openGroupSettings() {
+      if (!this.selectedChat || !this.selectedChat.isGroup) return;
+      this.editGroupName = this.selectedChat.name || "";
+      this.editGroupPhoto = this.selectedChat.photo || "";
+      this.newMemberUsername = "";
+      this.groupSettingsError = "";
+      this.groupSettingsSuccess = "";
+      this.showGroupSettings = true;
+    },
+
+    closeGroupSettings() {
+      this.showGroupSettings = false;
+      this.groupSettingsError = "";
+      this.groupSettingsSuccess = "";
+      this.newMemberUsername = "";
+    },
+
+    async updateGroupName() {
+      const name = this.editGroupName.trim();
+      if (!name) {
+        this.groupSettingsError = "Inserisci un nome per il gruppo";
+        return;
+      }
+      if (name.length < 3 || name.length > 25) {
+        this.groupSettingsError = "Il nome del gruppo deve essere tra 3 e 25 caratteri";
+        return;
+      }
+
+      this.isSavingGroupName = true;
+      this.groupSettingsError = "";
+      this.groupSettingsSuccess = "";
+
+      try {
+        await this.$axios.patch(
+          `/chats/${this.selectedChatId}/name`,
+          { name },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.selectedChat.name = name;
+        const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
+        if (chatInList) {
+          chatInList.name = name;
+          chatInList.displayName = name;
+        }
+        await this.loadChats();
+        this.groupSettingsSuccess = "Nome del gruppo aggiornato con successo!";
+      } catch (err) {
+        this.groupSettingsError = err.response?.data || "Errore durante l'aggiornamento del nome";
+      } finally {
+        this.isSavingGroupName = false;
+      }
+    },
+
+    async updateGroupPhoto() {
+      const photoUrl = this.editGroupPhoto.trim();
+      if (!photoUrl) {
+        this.groupSettingsError = "Inserisci un URL valido per la foto del gruppo";
+        return;
+      }
+      if (photoUrl.length < 3) {
+        this.groupSettingsError = "La foto specificata non è valida";
+        return;
+      }
+
+      this.isSavingGroupPhoto = true;
+      this.groupSettingsError = "";
+      this.groupSettingsSuccess = "";
+
+      try {
+        await this.$axios.put(
+          `/chats/${this.selectedChatId}/photo`,
+          { url: photoUrl },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.selectedChat.photo = photoUrl;
+        const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
+        if (chatInList) {
+          chatInList.photo = photoUrl;
+        }
+        await this.loadChats();
+        this.groupSettingsSuccess = "Foto del gruppo aggiornata con successo!";
+      } catch (err) {
+        this.groupSettingsError = err.response?.data || "Errore durante l'aggiornamento della foto";
+      } finally {
+        this.isSavingGroupPhoto = false;
+      }
+    },
+
+    async addMemberToGroup() {
+      const username = this.newMemberUsername.trim();
+      if (!username) {
+        this.groupSettingsError = "Inserisci un username";
+        return;
+      }
+      if (username.length < 3 || username.length > 16) {
+        this.groupSettingsError = "Lo username deve essere tra 3 e 16 caratteri";
+        return;
+      }
+
+      const currentUserId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
+      if (username === currentUserId) {
+        this.groupSettingsError = "Fai già parte di questo gruppo!";
+        return;
+      }
+
+      this.isAddingMember = true;
+      this.groupSettingsError = "";
+      this.groupSettingsSuccess = "";
+
+      try {
+        // Verifica se l'utente esiste sulla piattaforma WASAText
+        try {
+          await this.$axios.get("/users", {
+            params: { username },
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          });
+        } catch (searchErr) {
+          if (searchErr.response?.status === 404) {
+            this.groupSettingsError = `L'utente "${username}" non esiste su WASAText.`;
+            return;
+          }
+        }
+
+        // Aggiungi al gruppo tramite addToGroup
+        await this.$axios.post(
+          `/chats/${this.selectedChatId}/members`,
+          { userId: username },
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.groupSettingsSuccess = `Utente "${username}" aggiunto al gruppo con successo!`;
+        this.newMemberUsername = "";
+      } catch (err) {
+        if (err.response?.status === 500 || err.response?.status === 400) {
+          this.groupSettingsError = `Impossibile aggiungere "${username}". Potrebbe essere già membro del gruppo.`;
+        } else {
+          this.groupSettingsError = err.response?.data || `Errore nell'aggiunta dell'utente "${username}"`;
+        }
+      } finally {
+        this.isAddingMember = false;
+      }
+    },
+
+    async leaveGroup() {
+      const confirmed = window.confirm(`Sei sicuro di voler abbandonare il gruppo "${this.selectedChat.name}"?`);
+      if (!confirmed) return;
+
+      this.isLeavingGroup = true;
+      this.groupSettingsError = "";
+
+      try {
+        await this.$axios.delete(
+          `/chats/${this.selectedChatId}/members`,
+          {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token")
+            }
+          }
+        );
+
+        this.closeGroupSettings();
+        this.selectedChat = null;
+        this.selectedChatId = null;
+        await this.loadChats();
+      } catch (err) {
+        this.groupSettingsError = err.response?.data || "Errore durante l'uscita dal gruppo";
+      } finally {
+        this.isLeavingGroup = false;
+      }
     }
   },
 
   mounted() {
     this.loadChats();
 
-    this.intervalId = setInterval(() => {
-      this.loadChats();
-    }, 3000);
+    // Polling periodico ogni 2.5s per aggiornare conversazioni e messaggi della chat attiva in tempo reale
+    this.intervalId = setInterval(async () => {
+      await this.loadChats();
+      if (this.selectedChatId) {
+        await this.pollActiveChatMessages();
+      }
+    }, 2500);
   },
 
   beforeUnmount() {
-    clearInterval(this.intervalId);
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 };
 </script>
@@ -271,16 +2044,24 @@ export default {
   display: flex;
   width: 100%;
   height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background-color: #e2fff8;
+  box-sizing: border-box;
 }
 
 /* Sidebar */
 .home-sidebar {
   width: 30%;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   background-color: #ffffff;
   border-right: 2px solid #ccc;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
   border-radius: 0 22px 22px 0;
@@ -336,11 +2117,13 @@ export default {
 
 .chat-preview {
   display: flex;
+  align-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 14px 16px;
   cursor: pointer;
   transition: 0.25s ease;
   border-bottom: 1px solid #eee;
+  min-width: 0;
 }
 
 .chat-preview.selected {
@@ -348,49 +2131,95 @@ export default {
   border-left: 5px solid #0077aa;
 }
 
-
 .chat-preview:hover {
   background-color: #f5f5f5;
 }
 
 .chat-photo {
-  width: 55px;
-  height: 55px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
 }
 
 .chat-info {
   flex: 1;
+  min-width: 0; /* Fondamentale: permette il troncamento dei testi nei figli flex */
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .chat-top-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
+  min-width: 0;
 }
 
 .chat-name {
-  font-weight: bold;
-  font-size: 18px;
-  color: #222;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: bold; /* Sempre in grassetto */
+  font-size: 16px;
+  color: #1e293b;
 }
 
 .chat-time {
-  font-size: 14px;
-  color: #666;
+  font-size: 12px;
+  color: #64748b;
+  flex-shrink: 0;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.chat-bottom-row,
+.chat-last-message-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+  margin-top: 4px;
 }
 
 .chat-last-message {
-  font-size: 15px;
-  color: #444;
-  margin-top: 4px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 0;
+}
+
+/* Indicatore verde per messaggi non letti */
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  border-radius: 50%;
+  background-color: #25D366;
+  flex-shrink: 0;
+  margin-left: 8px;
+  display: inline-block;
 }
 
 /* Area principale */
 .home-main-area {
   width: 70%;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background-color: #d9f7ff;
   border-radius: 22px;
   margin-left: 20px;
@@ -505,90 +2334,1149 @@ export default {
   background-color: #bbb;
 }
 
+/* Stili specifici per Modal Gruppo */
+.modal-group-card {
+  width: 500px;
+  max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  gap: 18px;
+  padding: 30px;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.modal-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-input-compact {
+  height: 48px;
+  font-size: 16px;
+  padding: 8px 14px;
+}
+
+.photo-input-section {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.photo-preview-box {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.group-photo-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #222;
+}
+
+.btn-clear-photo {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-inputs-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.add-user-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-add-chip {
+  padding: 0 16px;
+  background-color: #222;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.2s;
+}
+
+.btn-add-chip:hover {
+  background-color: #444;
+}
+
+.suggested-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.suggested-title {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.suggested-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 70px;
+  overflow-y: auto;
+}
+
+.contact-tag {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 12px;
+  border: 1px solid #bbb;
+  background-color: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.contact-tag:hover {
+  background-color: #e0e0e0;
+}
+
+.contact-tag.tag-active {
+  background-color: #222;
+  color: white;
+  border-color: #222;
+}
+
+.selected-users-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  border: 1px dashed #ccc;
+}
+
+.selected-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.no-users-hint {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+}
+
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 90px;
+  overflow-y: auto;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #e6f4ff;
+  color: #0050b3;
+  border: 1px solid #91caff;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chip-remove-btn {
+  background: none;
+  border: none;
+  color: #0050b3;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.chip-remove-btn:hover {
+  color: #ff4d4f;
+}
+
 /* AREA CHAT */
 .chat-area {
   height: 100%;
+  max-height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background-color: #ffffff;
   border-radius: 22px;
+  overflow: hidden;
 }
 
-/* Header */
+/* Header: Layout Flexbox con elementi allineati perfettamente sulla stessa riga */
 .chat-header {
-  padding: 20px;
+  flex-shrink: 0;
+  padding: 14px 20px;
   border-bottom: 2px solid #ccc;
-  font-size: 22px;
-  font-weight: bold;
-}
-
-/* Messaggi */
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
+  background-color: #ffffff;
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
 }
 
-.message {
-  max-width: 60%;
-  padding: 12px;
-  background-color: #e6e6e6;
-  border-radius: 12px;
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.message.mine {
-  background-color: #cce5ff;
-  margin-left: auto;
+.chat-header-photo {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.chat-header-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-header-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-header-badge {
+  font-size: 11px;
+  color: #0077aa;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.header-settings-btn {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #555;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.header-settings-btn:hover {
+  background-color: #f0f2f5;
+  color: #111;
+  transform: rotate(30deg);
+}
+
+.header-settings-btn:active {
+  transform: scale(0.92);
+}
+
+/* Modale Gestione Gruppo */
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.btn-close-modal:hover {
+  background-color: #eee;
+  color: #111;
+}
+
+.input-with-action {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-action-small {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background-color: #f8fafc;
+  color: #222;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  height: 46px;
+  box-sizing: border-box;
+}
+
+.btn-action-small:hover:not(:disabled) {
+  background-color: #e2e8f0;
+}
+
+.btn-action-small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary-small {
+  background-color: #222;
+  color: #fff;
+  border-color: #222;
+}
+
+.btn-primary-small:hover:not(:disabled) {
+  background-color: #000;
+}
+
+.photo-edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.success-msg {
+  color: #16a34a;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  margin: 4px 0;
+}
+
+.modal-divider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 12px 0;
+}
+
+.modal-danger-zone {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #fca5a5;
+  background-color: #fef2f2;
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Messaggi: Container Flexbox in colonna con scroll dedicato */
+.messages {
+  flex: 1 1 0;
+  min-height: 0; /* Fondamentale: sblocca lo scroll in un container flex */
+  overflow-y: auto;
+  overflow-x: visible; /* Non tronca i popup e picker emoji */
+  padding: 30px 20px 20px; /* Spazio superiore per il picker del primo messaggio */
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Layout flessibile con spaziatura tra i messaggi come richiesto */
+  background-color: #efeae2; /* Texture e sfondo chat classico WhatsApp */
+  background-image: radial-gradient(#dfd9cf 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+/* Scrollbar personalizzata per l'area messaggi */
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 4px;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Wrapper del messaggio: allinea fumetto e reazioni */
+.message-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 68%;
+  min-width: 100px;
+  position: relative;
+}
+
+.message-wrapper.received,
+.message-wrapper:not(.is-mine) {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.message-wrapper.sent,
+.message-wrapper.is-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* Garanzia stacking context: il messaggio con picker attivo sta sempre in primo piano */
+.message-wrapper.has-active-picker,
+.message.has-active-picker {
+  z-index: 50 !important;
+}
+
+/* Nuvoletta Base del Messaggio */
+.message {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 90px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  word-wrap: break-word;
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.12);
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Messaggi Ricevuti (altri utenti): allineati a sinistra, sfondo bianco neutro */
+.message.received,
+.message:not(.is-mine) {
+  align-self: flex-start;
+  background-color: #ffffff;
+  color: #111b21;
+  border: 1px solid #e2e8f0;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+/* Messaggi Inviati (utente corrente): allineati a destra, verde chiaro WhatsApp */
+.message.sent,
+.message.is-mine {
+  align-self: flex-end;
+  background-color: #dcf8c6;
+  color: #111b21;
+  border: 1px solid #c5e6ad;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+/* Indicatore Inoltrato (in alto a destra del fumetto) */
+.forwarded-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-style: italic;
+  color: #64748b;
+  margin-bottom: 4px;
+  align-self: flex-end;
+  user-select: none;
+}
+
+.forwarded-indicator svg {
+  stroke: #64748b;
+}
+
+/* Username mittente (visibile solo nei ricevuti) */
+.message-sender {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0077aa;
+  margin-bottom: 4px;
+  letter-spacing: 0.2px;
+}
+
+/* Citazione Risposta incorporata nel messaggio (stile WhatsApp) */
+.message-reply-preview {
+  display: flex;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.reply-preview-stripe {
+  width: 4px;
+  background-color: #0077aa;
+  flex-shrink: 0;
+}
+
+.reply-preview-body {
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.reply-preview-sender {
+  font-weight: 600;
+  color: #0077aa;
+  margin-bottom: 2px;
+}
+
+.reply-preview-text {
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.photo-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+  font-style: italic;
+}
+
+/* Testo del messaggio */
+.message-text {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #1f2937;
+  white-space: pre-wrap;
+}
+
+.message-photo-wrapper {
+  margin: 2px 0;
+  display: flex;
+  align-items: center;
+}
+
+.message-photo-img {
+  max-width: 300px;
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.15s ease;
+}
+
+.message-photo-img:hover {
+  opacity: 0.95;
+}
+
+/* Footer reazioni integrato dentro al fumetto del messaggio sotto al testo */
+.message-reactions-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  margin-bottom: 3px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.reaction-footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 2px 7px;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.reaction-footer-badge:hover {
+  background-color: #ffffff;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.reaction-footer-badge.is-mine {
+  background-color: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.reaction-footer-badge.is-mine:hover {
+  background-color: #bae6fd;
+}
+
+.reaction-badge-emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.reaction-badge-user {
+  font-size: 11px;
+  color: #475569;
+}
+
+.reaction-footer-badge.is-mine .reaction-badge-user {
+  color: #0284c7;
+  font-weight: 600;
+}
+
+/* Dettagli footer (orario e spunte) */
+.message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+  user-select: none;
 }
 
 .timestamp {
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-/* Box invio */
-.send-box {
+/* Spunte di stato */
+.message-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.message-status .check-icon {
+  display: block;
+}
+
+.message-status.status-sent {
+  color: #8696a0;
+}
+
+.message-status.status-received {
+  color: #8696a0;
+}
+
+.message-status.status-read {
+  color: #0077aa;
+}
+
+/* Barra azioni messaggio al passaggio del mouse */
+.message-action-toolbar {
+  position: absolute;
+  top: -14px;
+  right: 6px;
+  display: none;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  padding: 2px 4px;
+  z-index: 20;
+  gap: 2px;
+}
+
+.message-wrapper:hover .message-action-toolbar,
+.message:hover .message-action-toolbar {
   display: flex;
+}
+
+.msg-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 10px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.msg-action-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.msg-action-btn svg {
+  pointer-events: none;
+}
+
+.msg-action-btn.btn-delete-msg:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+/* Messaggio eliminato (Tombstone) */
+.message.is-deleted {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border: 1px dashed #cbd5e1;
+  box-shadow: none !important;
+}
+
+.message.is-deleted.sent,
+.message.is-deleted.received {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+}
+
+.message-text.is-deleted-text,
+.tombstone-text {
+  font-style: italic;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.message-text.is-deleted-text em,
+.tombstone-text em {
+  font-style: italic;
+}
+
+/* Popup Selettore 4 Emoji: posizionato e con z-index 50 */
+.emoji-picker-popup {
+  position: absolute;
+  top: -46px;
+  z-index: 50 !important;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 24px;
+  padding: 3px 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.is-mine .emoji-picker-popup,
+.sent .emoji-picker-popup {
+  right: 0;
+  left: auto;
+}
+
+:not(.is-mine) .emoji-picker-popup,
+.received .emoji-picker-popup {
+  left: 0;
+  right: auto;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.emoji-option-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 50%;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+
+.emoji-option-btn:hover {
+  transform: scale(1.3);
+  background-color: #f1f5f9;
+}
+
+.emoji-option-btn.is-selected {
+  background-color: #dbeafe;
+}
+
+/* Barra Preview Risposta agganciata sopra la send-box */
+.reply-preview-bar {
+  display: flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  padding: 8px 14px;
+  border-top: 1px solid #e2e8f0;
+  border-left: 4px solid #0077aa;
+  flex-shrink: 0;
+  animation: slideDown 0.18s ease-out;
+}
+
+@keyframes slideDown {
+  0% { transform: translateY(6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.reply-preview-body {
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.reply-preview-title {
+  font-size: 12px;
+  color: #0077aa;
+  margin-bottom: 2px;
+}
+
+.reply-preview-snippet {
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-cancel-reply {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: 0.15s;
+}
+
+.btn-cancel-reply:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #1e293b;
+}
+
+/* Modal Inoltro */
+.modal-forward-card {
+  max-width: 440px;
+}
+
+.modal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.btn-close-modal {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+}
+
+.btn-close-modal:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.forward-msg-preview-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.forward-msg-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.forward-msg-preview-content {
+  font-size: 13px;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forward-chats-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forward-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.forward-chat-row:hover {
+  background-color: #f1f5f9;
+}
+
+.forward-chat-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.forward-chat-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.forward-chat-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.no-chats-found {
+  text-align: center;
+  padding: 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Nessun messaggio presente */
+.no-messages {
+  text-align: center;
+  color: #94a3b8;
+  margin: auto;
+  font-size: 16px;
+  font-style: italic;
+  padding: 20px;
+}
+
+.chat-last-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.chat-last-photo .photo-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Box invio: saldamente ancorato in basso senza flex-grow */
+.send-box {
+  flex-shrink: 0;
+  flex-grow: 0;
+  display: flex;
+  align-items: center;
   padding: 15px;
   border-top: 2px solid #ccc;
   background-color: #f5f5f5;
+  gap: 10px;
+}
+
+.btn-attach-photo {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-attach-photo:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
 }
 
 .send-box input {
   flex: 1;
-  padding: 12px;
+  padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid #aaa;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
 }
 
-.send-box button {
-  margin-left: 10px;
+.send-box input:focus {
+  border-color: #0077aa;
+}
+
+.send-box .btn-send-message {
+  margin-left: 0;
   padding: 12px 20px;
   border-radius: 12px;
+  border: none;
   background-color: #222;
   color: white;
   font-weight: bold;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.send-box .btn-send-message:hover {
+  background-color: #444;
+}
+
+/* Modale Invio Foto */
+.modal-photo-card {
+  width: 440px;
+  max-width: 92%;
+  gap: 16px;
+}
+
+.modal-photo-desc {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.modal-photo-preview-wrap {
+  width: 100%;
+  max-height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+.modal-photo-preview-img {
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
 }
 
 
+
+.chat-last-deleted {
+  font-style: italic;
+  color: #94a3b8;
+}
+
+.chat-last-deleted em {
+  font-style: italic;
+  color: #94a3b8;
+}
 
 /* MOBILE */
 @media (max-width: 900px) {
   .home-layout {
     flex-direction: column;
     padding: 10px;
+    overflow-y: auto;
   }
 
   .home-sidebar {
     width: 100%;
+    height: auto;
+    max-height: 280px;
     border-radius: 22px;
     border-right: none;
     border-bottom: 2px solid #ccc;
+    flex-shrink: 0;
   }
 
   .sidebar-top-bar {
@@ -612,10 +3500,38 @@ export default {
     margin-left: 0;
     margin-top: 20px;
     border-radius: 22px;
+    flex: 1;
+    min-height: 400px;
   }
 
   .modal-card {
     width: 90%;
+  }
+
+  .messages {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .message-wrapper {
+    max-width: 85%;
+  }
+
+  .message {
+    max-width: 100%;
+    padding: 8px 12px;
+  }
+
+  .message-text {
+    font-size: 14px;
+  }
+
+  .message-sender {
+    font-size: 11px;
+  }
+
+  .timestamp {
+    font-size: 10px;
   }
 }
 </style>
