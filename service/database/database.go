@@ -39,8 +39,8 @@ import (
 )
 
 // AppDatabase is the high level interface for the DB
+// Definisce tutti i metodi esposti dal database
 type AppDatabase interface {
-
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
 
@@ -85,15 +85,13 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
-	//foreign key activation
+	// foreign key activation
 	_, errPragma := db.Exec(`PRAGMA foreign_keys = ON`)
 	if errPragma != nil {
 		return nil, fmt.Errorf("foreign key activation error: %w", errPragma)
 	}
 
-	// Check if table exists. If not, the database is empty, and we need to create the structure
-
-	//users table creation
+	// users table creation
 	var users string
 	errUsers := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&users)
 	if errors.Is(errUsers, sql.ErrNoRows) {
@@ -149,6 +147,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
 						state INTEGER NOT NULL, 
 						forwarded BOOLEAN NOT NULL DEFAULT 0,
+						deleted INTEGER NOT NULL DEFAULT 0,
 						userId TEXT, 
 						chatId TEXT,
 						FOREIGN KEY (userId) REFERENCES users(userId),
@@ -193,14 +192,6 @@ func New(db *sql.DB) (AppDatabase, error) {
 			return nil, fmt.Errorf("error creating database structure: %w", errReads)
 		}
 	}
-
-	// Add deleted column for soft-delete (idempotent)
-	_, _ = db.Exec(`ALTER TABLE messages ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;`)
-
-	// Repair corrupted chat_members rows where userId was stored as username instead of users.userId
-	_, _ = db.Exec(`UPDATE OR REPLACE chat_members
-		SET userId = (SELECT u.userId FROM users u WHERE u.name = chat_members.userId)
-		WHERE EXISTS (SELECT 1 FROM users u WHERE u.name = chat_members.userId);`)
 
 	return &appdbimpl{
 		c: db,
