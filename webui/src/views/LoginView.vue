@@ -52,6 +52,8 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 /* Card del login */
@@ -59,36 +61,44 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 40px;
+  gap: 30px;
 
-  padding: 70px;
+  padding: clamp(30px, 6vw, 70px);
   border-radius: 22px;
   background-color: #ffffff;
+  width: 100%;
+  max-width: 520px;
 
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-sizing: border-box;
 }
 
 /* Titolo */
 #login-label {
-  font-size: 72px;
+  font-size: clamp(36px, 10vw, 72px);
   letter-spacing: 4px;
   font-weight: bold;
   color: #222;
+  text-align: center;
 }
 
 .login-container form {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
 }
 
 .login-container input,
 .login-container button {
-  width: 420px;
-  height: 75px;
-  font-size: 28px;
+  width: 100%;
+  max-width: 420px;
+  height: clamp(55px, 8vw, 75px);
+  font-size: clamp(18px, 4vw, 28px);
   padding: 14px;
   border-radius: 14px;
+  box-sizing: border-box;
+  align-self: center;
 }
 
 .login-container input {
@@ -117,5 +127,19 @@ export default {
   background-color: #444;
   transform: translateY(-3px);
   box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+}
+
+@media (max-width: 600px) {
+  .login-container {
+    gap: 20px;
+    border-radius: 16px;
+  }
+
+  .login-container input,
+  .login-container button {
+    height: 50px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
 }
 </style>

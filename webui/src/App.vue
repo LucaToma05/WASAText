@@ -5,7 +5,7 @@ import { RouterView } from 'vue-router'
 <template>
   <div class="app-root">
     <header class="navbar">
-      <h1 style="padding: 10px; color: black; font-family: fantasy">WasaText</h1>
+      <h1>WasaText</h1>
     </header>
 
     <div class="app-container">
@@ -28,11 +28,20 @@ import { RouterView } from 'vue-router'
   background-color: rgb(17, 209, 17);
   margin: 0;
   padding: 0 20px;
-  height: clamp(60px, 8vh, 80px);
+  height: clamp(50px, 8vh, 80px);
   display: flex;
   align-items: center;
   flex-shrink: 0;
   box-sizing: border-box;
+}
+
+.navbar h1 {
+  padding: 10px;
+  color: black;
+  font-family: fantasy;
+  font-size: clamp(18px, 4vw, 28px);
+  margin: 0;
+  white-space: nowrap;
 }
 
 /* Spazio sotto l'header */
@@ -43,4 +52,11 @@ import { RouterView } from 'vue-router'
   min-height: 0;
   overflow: hidden;
 }
-</style>
+
+@media (max-width: 600px) {
+  .navbar {
+    height: 48px;
+    padding: 0 12px;
+  }
+}
+</style>

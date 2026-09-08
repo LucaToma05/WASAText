@@ -213,28 +213,32 @@ export default {
 
 <style scoped>
 .profile-wrapper {
-  height: 100vh;
+  height: 100%;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: #e2fff8;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .profile-card {
   background: white;
-  padding: 40px;
+  padding: clamp(24px, 4vw, 40px);
   border-radius: 22px;
-  width: 450px;
+  width: 90%;
+  max-width: 450px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 24px;
+  box-sizing: border-box;
 }
 
 .title {
   text-align: center;
-  font-size: 32px;
+  font-size: clamp(22px, 5vw, 32px);
   font-weight: bold;
 }
 
@@ -245,13 +249,13 @@ export default {
 }
 
 .section-title {
-  font-size: 20px;
+  font-size: clamp(16px, 3vw, 20px);
   font-weight: bold;
 }
 
 .profile-photo {
-  width: 140px;
-  height: 140px;
+  width: clamp(90px, 20vw, 140px);
+  height: clamp(90px, 20vw, 140px);
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #ccc;
@@ -259,16 +263,17 @@ export default {
 
 .placeholder-text {
   color: #777;
-  font-size: 20px;
+  font-size: clamp(16px, 3vw, 20px);
 }
 
 .username-box {
   padding: 12px 18px;
   background-color: #f5f5f5;
   border-radius: 12px;
-  font-size: 20px;
+  font-size: clamp(16px, 3vw, 20px);
   font-weight: bold;
   border: 2px solid #ccc;
+  word-break: break-word;
 }
 
 .username-input {
@@ -293,21 +298,25 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .modal-card {
   background: white;
-  padding: 30px;
+  padding: clamp(20px, 4vw, 30px);
   border-radius: 18px;
-  width: 380px;
+  width: 90%;
+  max-width: 380px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   display: flex;
   flex-direction: column;
   gap: 18px;
+  box-sizing: border-box;
 }
 
 .modal-title {
-  font-size: 24px;
+  font-size: clamp(18px, 4vw, 24px);
   font-weight: bold;
   text-align: center;
 }
@@ -316,13 +325,17 @@ export default {
   padding: 12px;
   border-radius: 12px;
   border: 2px solid #ccc;
-  font-size: 18px;
+  font-size: clamp(14px, 3vw, 18px);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .actions {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .btn-primary {
@@ -331,7 +344,7 @@ export default {
   color: white;
   border: none;
   border-radius: 14px;
-  font-size: 16px;
+  font-size: clamp(14px, 2.5vw, 16px);
   font-weight: bold;
   cursor: pointer;
   transition: 0.25s ease;
@@ -347,7 +360,7 @@ export default {
   background-color: #ccc;
   border: none;
   border-radius: 14px;
-  font-size: 16px;
+  font-size: clamp(14px, 2.5vw, 16px);
   cursor: pointer;
   transition: 0.25s ease;
 }
@@ -362,7 +375,7 @@ export default {
   color: white;
   border: none;
   border-radius: 14px;
-  font-size: 16px;
+  font-size: clamp(14px, 2.5vw, 16px);
   cursor: pointer;
   transition: 0.25s ease;
 }
@@ -370,4 +383,24 @@ export default {
 .btn-danger:hover {
   background-color: #c9302c;
 }
+
+@media (max-width: 600px) {
+  .profile-card {
+    gap: 18px;
+    border-radius: 16px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .actions .btn-primary,
+  .actions .btn-secondary,
+  .actions .btn-danger {
+    width: 100%;
+    text-align: center;
+  }
+}
 </style>
+

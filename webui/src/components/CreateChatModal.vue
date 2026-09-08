@@ -89,17 +89,19 @@ export default {
 
 .modal-card {
   background-color: #ffffff;
-  padding: 40px;
+  padding: clamp(24px, 5vw, 40px);
   border-radius: 22px;
-  width: 420px;
+  width: 90%;
+  max-width: 420px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
   display: flex;
   flex-direction: column;
   gap: 25px;
+  box-sizing: border-box;
 }
 
 .modal-title {
-  font-size: 32px;
+  font-size: clamp(22px, 5vw, 32px);
   font-weight: bold;
   color: #222;
   text-align: center;
@@ -107,8 +109,8 @@ export default {
 
 .modal-input {
   width: 100%;
-  height: 60px;
-  font-size: 20px;
+  height: clamp(48px, 8vw, 60px);
+  font-size: clamp(16px, 3vw, 20px);
   padding: 12px;
   border-radius: 14px;
   border: 2px solid #555;
@@ -172,5 +174,23 @@ export default {
 
 .btn-secondary:hover {
   background-color: #bbb;
+}
+
+@media (max-width: 600px) {
+  .modal-card {
+    border-radius: 16px;
+    gap: 18px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .modal-buttons .btn-primary,
+  .modal-buttons .btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
 }
 </style>

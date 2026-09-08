@@ -1,5 +1,5 @@
 <template>
-  <div class="home-layout">
+  <div class="home-layout" :class="{ 'chat-open': selectedChat }">
 
     <!-- SIDEBAR -->
     <div class="home-sidebar">
@@ -44,6 +44,11 @@
         <!-- HEADER -->
         <div class="chat-header">
           <div class="chat-header-left">
+            <button class="btn-back-mobile" @click="goBackToList" title="Torna alla lista chat">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
             <img 
               :src="selectedChat.photo || '/default.png'" 
               class="chat-header-photo" 
@@ -278,6 +283,7 @@
               <div 
                 v-if="activeEmojiPickerMessageId === msg.id" 
                 class="emoji-picker-popup"
+                :class="{ 'placement-bottom': emojiPickerPlacement === 'bottom' }"
                 @click.stop
               >
                 <button 
@@ -425,6 +431,7 @@ export default {
       // Reazioni (4 emoji: 👍, ❤️, 😂, 😮)
       reactionEmojis: ['👍', '❤️', '😂', '😮'],
       activeEmojiPickerMessageId: null,
+      emojiPickerPlacement: 'top',
       userCache: {},
 
       // Risposte
@@ -454,6 +461,13 @@ export default {
   methods: {
     goToProfile() {
       this.$router.push("/profile");
+    },
+
+    goBackToList() {
+      this.selectedChat = null;
+      this.selectedChatId = null;
+      this.replyingToMessage = null;
+      this.activeEmojiPickerMessageId = null;
     },
 
     async openChat(chatId) {
@@ -885,13 +899,40 @@ export default {
     toggleEmojiPicker(messageId) {
       if (this.activeEmojiPickerMessageId === messageId) {
         this.activeEmojiPickerMessageId = null;
+        this.emojiPickerPlacement = 'top';
       } else {
         this.activeEmojiPickerMessageId = messageId;
+        this.emojiPickerPlacement = 'top';
+
+        this.$nextTick(() => {
+          const container = this.$refs.messagesContainer;
+          if (!container) return;
+          const popup = container.querySelector('.emoji-picker-popup');
+          if (!popup) return;
+
+          const popupRect = popup.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+
+          // Se non c'è abbastanza spazio sopra il messaggio (o sfora sopra), posiziona sotto al fumetto
+          if (popupRect.top < containerRect.top + 8) {
+            this.emojiPickerPlacement = 'bottom';
+          }
+
+          // Controllo di sicurezza orizzontale: impedisce la fuoriuscita dai bordi laterali dello schermo
+          if (popupRect.right > containerRect.right - 8) {
+            popup.style.right = '0px';
+            popup.style.left = 'auto';
+          } else if (popupRect.left < containerRect.left + 8) {
+            popup.style.left = '0px';
+            popup.style.right = 'auto';
+          }
+        });
       }
     },
 
     closeEmojiPicker() {
       this.activeEmojiPickerMessageId = null;
+      this.emojiPickerPlacement = 'top';
     },
 
     async handleEmojiSelect(msg, emoji) {
@@ -1733,8 +1774,8 @@ export default {
   flex: 1 1 0;
   min-height: 0; /* Fondamentale: sblocca lo scroll in un container flex */
   overflow-y: auto;
-  overflow-x: visible; /* Non tronca i popup e picker emoji */
-  padding: 30px 20px 20px; /* Spazio superiore per il picker del primo messaggio */
+  overflow-x: hidden;
+  padding: 52px 20px 20px; /* Spazio superiore per il picker del primo messaggio */
   display: flex;
   flex-direction: column;
   gap: 10px; /* Layout flessibile con spaziatura tra i messaggi come richiesto */
@@ -2048,8 +2089,14 @@ export default {
 }
 
 .message-wrapper:hover .message-action-toolbar,
-.message:hover .message-action-toolbar {
+.message:hover .message-action-toolbar,
+.message-wrapper:focus-within .message-action-toolbar,
+.message:focus-within .message-action-toolbar {
   display: flex;
+}
+
+.has-active-picker .message-action-toolbar {
+  display: none !important;
 }
 
 .msg-action-btn {
@@ -2108,11 +2155,11 @@ export default {
   font-style: italic;
 }
 
-/* Popup Selettore 4 Emoji: posizionato e con z-index 50 */
+/* Popup Selettore 4 Emoji: posizionato e con z-index elevato */
 .emoji-picker-popup {
   position: absolute;
   top: -46px;
-  z-index: 50 !important;
+  z-index: 60 !important;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -2123,18 +2170,29 @@ export default {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
   white-space: nowrap;
   animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: auto;
 }
 
-.is-mine .emoji-picker-popup,
-.sent .emoji-picker-popup {
-  right: 0;
-  left: auto;
+/* Quando il messaggio è vicino al bordo superiore, posiziona il picker sotto al fumetto */
+.emoji-picker-popup.placement-bottom {
+  top: calc(100% + 6px);
+  bottom: auto;
 }
 
-:not(.is-mine) .emoji-picker-popup,
-.received .emoji-picker-popup {
-  left: 0;
-  right: auto;
+/* Messaggi Inviati (utente corrente): allineato rigorosamente a destra del fumetto per non sbordare a destra */
+.message.sent .emoji-picker-popup,
+.message.is-mine .emoji-picker-popup,
+.message-wrapper.sent .emoji-picker-popup,
+.message-wrapper.is-mine .emoji-picker-popup {
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* Messaggi Ricevuti (altri utenti): allineato a sinistra del fumetto */
+.message.received .emoji-picker-popup,
+.message-wrapper.received .emoji-picker-popup {
+  left: 0 !important;
+  right: auto !important;
 }
 
 @keyframes popIn {
@@ -2474,7 +2532,7 @@ export default {
   }
 
   .messages {
-    padding: 10px;
+    padding: 50px 12px 16px;
     gap: 8px;
   }
 
@@ -2513,5 +2571,155 @@ export default {
 
 .timestamp {
   font-size: 10px;
+}
+
+/* Pulsante Indietro (visibile solo su mobile) */
+.btn-back-mobile {
+  display: none;
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
+}
+
+.btn-back-mobile:hover {
+  background-color: #f0f0f0;
+}
+
+/* ========== MOBILE: < 600px ========== */
+@media (max-width: 600px) {
+  .home-layout {
+    padding: 0;
+    position: relative;
+  }
+
+  /* Sidebar full width */
+  .home-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    border-radius: 0;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  /* Main area full width sovrapposta */
+  .home-main-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin-left: 0;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: 10;
+    display: none;
+  }
+
+  /* Quando una chat è aperta: nascondi sidebar, mostra chat */
+  .home-layout.chat-open .home-sidebar {
+    display: none;
+  }
+
+  .home-layout.chat-open .home-main-area {
+    display: flex;
+  }
+
+  /* Mostra pulsante Indietro */
+  .btn-back-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Sidebar top bar compatta */
+  .sidebar-top-bar {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .sidebar-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  /* Chat header */
+  .chat-header {
+    padding: 10px 12px;
+  }
+
+  .chat-header-title {
+    font-size: 16px;
+  }
+
+  .chat-header-photo {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Messaggi */
+  .messages {
+    padding: 50px 8px 16px;
+    gap: 8px;
+  }
+
+  .message-action-toolbar {
+    top: -16px;
+    padding: 3px 6px;
+    gap: 3px;
+  }
+
+  .message-wrapper {
+    max-width: 92%;
+  }
+
+  .message {
+    padding: 7px 10px;
+  }
+
+  .message-text {
+    font-size: 14px;
+  }
+
+  .message-photo-img {
+    max-width: 85vw;
+    max-height: 260px;
+  }
+
+  .reply-preview-text {
+    max-width: 60vw;
+  }
+
+  /* Send box */
+  .send-box {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .send-box input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .send-box .btn-send-message {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  /* Empty chat */
+  .empty-chat {
+    font-size: 16px;
+  }
+
+  /* Reply preview bar */
+  .reply-preview-bar {
+    padding: 6px 10px;
+  }
 }
 </style>
