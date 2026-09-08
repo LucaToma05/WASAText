@@ -1,24 +1,25 @@
+# Servizi docker 
 services:
   # ---- Backend (Go API) ----
   backend:
     container_name: wasatext-backend
-    build:
+    build: # builda l'immagine prendendo come base Dockerfile.backend
       context: .
       dockerfile: Dockerfile.backend
-    ports:
-      - "3000:3000"
-    volumes:
+    ports: # mappa la porta dell'host su quella del container backend
+      - "3000:3000" 
+    volumes: # monta il database all'interno del container garantendo la presistenza dei dati
       - ./cmd/webapi/wasatext.db:/app/wasatext.db
-    restart: unless-stopped
+    restart: unless-stopped # riavvia il container se si arresta in modo anomalo
 
   # ---- Frontend (Vue.js + Vite) ----
   frontend:
     container_name: wasatext-frontend
-    build:
+    build: # builda l'immagine prendendo come base Dockerfile.frontend
       context: .
       dockerfile: Dockerfile.frontend
-    ports:
+    ports: # mappa la porta dell'host su quella del container frontend
       - "4173:4173"
-    depends_on:
+    depends_on: # attende che il container backend sia avviato
       - backend
-    restart: unless-stopped
+    restart: unless-stopped # riavvia il container se si arresta in modo anomalo

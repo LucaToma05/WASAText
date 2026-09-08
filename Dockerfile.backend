@@ -1,4 +1,4 @@
-# ---- Build Stage ----
+# ---- Base di Go 1.21 ----
 FROM golang:1.21 AS builder
 
 # Imposta la working directory nel container
@@ -8,18 +8,19 @@ WORKDIR /src
 COPY go.mod go.sum ./
 COPY vendor/ vendor/
 
-# Copia tutto il codice sorgente
+# Copia tutto il codice sorgente del progetto
 COPY . .
 
 # Compila il binario.
 # CGO_ENABLED=1 è necessario per go-sqlite3.
-# -mod=vendor forza l'uso della directory vendor locale.
+# -mod=vendor forza l'uso della directory vendor locale senza scaricare nulla da internet.
+# -o /app/webapi ./cmd/webapi compila l'applicazione a partire da /cmd/webapi e salva il file eseguibile finale in /app/webapi
 RUN CGO_ENABLED=1 go build -mod=vendor -o /app/webapi ./cmd/webapi
 
-# ---- Run Stage ----
+# ---- Avvia lo stage di produzione basato su una distribuzione Debian ----
 FROM debian:bookworm-slim
 
-# Installa le librerie C necessarie a runtime per SQLite (linkato dinamicamente via CGO)
+# Installa le librerie C necessarie a runtime per SQLite
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libc6 \

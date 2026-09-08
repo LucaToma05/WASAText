@@ -1,3 +1,4 @@
+# Imposta Node.js come immagine base
 FROM node:lts
 
 # Imposta la working directory
@@ -13,8 +14,8 @@ RUN yarn install --immutable
 # Copia il resto del codice sorgente del frontend
 COPY webui/ .
 
-# Espone la porta di Vite preview
+# Espone la porta 4173
 EXPOSE 4173
 
-# Builda l'app e la serve con vite preview
+# Builda l'app e avvia il server vite preview
 CMD yarn build-dev && yarn preview --host 0.0.0.0
