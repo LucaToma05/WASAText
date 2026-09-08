@@ -3,18 +3,6 @@ package database
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
 func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, error) {
-	// Assicura l'esistenza della tabella message_reads
-	_, _ = db.c.Exec(`
-		CREATE TABLE IF NOT EXISTS message_reads (
-			messageId TEXT NOT NULL,
-			userId TEXT NOT NULL,
-			readInstant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (messageId, userId)
-		);
-	`)
-
-	// Assicura la colonna deleted per il soft-delete
-	_, _ = db.c.Exec(`ALTER TABLE messages ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;`)
 
 	rows, err := db.c.Query(`
         SELECT

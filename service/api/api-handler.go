@@ -8,11 +8,8 @@ import (
 func (rt *_router) Handler() http.Handler {
 	// Register routes
 	rt.router.GET("/", rt.getHelloWorld)
-	rt.router.GET("/context", rt.wrap(rt.getContextReply))
 
-	//rt.wrap aggiunge un parametro in più, ovvero ctx reqcontext.RequestContext
-
-	//TAG: login
+	// TAG: login
 	rt.router.POST("/session", rt.wrap(rt.doLogin))
 
 	//TAG: user

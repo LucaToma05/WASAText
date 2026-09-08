@@ -27,7 +27,7 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	commentId := ps.ByName("commentId")
-	if messageId == "" {
+	if commentId == "" {
 		http.Error(w, "Parameters extraction error", http.StatusBadRequest)
 		return
 	}

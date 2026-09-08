@@ -13,7 +13,7 @@ type User struct {
 }
 
 type Username struct {
-	Username string `json:"participants"`
+	Username string `json:"username"`
 }
 
 type UserId struct {
@@ -109,32 +109,3 @@ type AddToGroupRequest struct {
 	UserId string `json:"userId"`
 }
 
-type UsernameRequest struct {
-	Username string
-}
-
-type UsernameQuery struct {
-	ID       int
-	Username string
-}
-
-type PhotoQuery struct {
-	ID    int
-	Photo string
-}
-
-type Conversation struct {
-	ID       int
-	Messages []Message
-}
-
-type Group struct {
-	Name  string
-	Photo string
-}
-
-type GroupResponse struct {
-	ID    int
-	Name  string
-	Photo string
-}

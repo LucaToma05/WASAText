@@ -30,8 +30,8 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	//Check id length
-	if len(req.UserId) < 3 || len(req.UserId) > 16 {
+	//Check id length (allow 3 to 25 to support both username and userId)
+	if len(req.UserId) < 3 || len(req.UserId) > 25 {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -63,6 +63,32 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
+	// Resolve target user: req.UserId can be either a username (e.g. "bob") or a userId UUID
+	targetUserId := req.UserId
+	uId, err := rt.db.GetIdUserByUsername(req.UserId)
+	if err == nil && uId != "" {
+		targetUserId = uId
+	} else {
+		uInfo, err2 := rt.db.GetMyInformation(req.UserId)
+		if err2 != nil || uInfo.UserId == "" {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		targetUserId = uInfo.UserId
+	}
+
+	// Check if target user is already in the group
+	alreadyMember, err := rt.db.CheckUserInGroup(chatId, targetUserId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if alreadyMember {
+		http.Error(w, "User already in group", http.StatusBadRequest)
+		return
+	}
+
+	req.UserId = targetUserId
 	err = rt.db.AddToGroup(req, chatId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -70,7 +96,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(req); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

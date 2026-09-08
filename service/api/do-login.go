@@ -64,26 +64,11 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 			return
 		}
 	}
-	/*
-		risposta := structure.LoginResponse{
-			UserId: id,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Authorization", "Bearer "+id)
-		if userCreated == true {
-			w.WriteHeader(http.StatusCreated)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
-		if err = json.NewEncoder(w).Encode(risposta); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-	*/
 	risposta := structure.LoginResponse{
 		Token: id,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if userCreated == true {
+	if userCreated {
 		w.WriteHeader(http.StatusCreated)
 	} else {
 		w.WriteHeader(http.StatusOK)

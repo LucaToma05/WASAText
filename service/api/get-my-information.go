@@ -3,25 +3,21 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"log"
 
 	"github.com/LucaToma05/WASAText/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
 func (rt *_router) getMyInformation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	log.Println(">>> getMyInformation CHIAMATO")
-
 	userId := ctx.UserId
 	if userId == "" {
 		http.Error(w, "Unauthorized User", http.StatusUnauthorized)
 		return
 	}
-	
 
 	userInfo, err := rt.db.GetMyInformation(userId)
 	if err != nil {
-		log.Println("ERRORE GET:", err)
+		ctx.Logger.WithError(err).Error("error getting user information")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

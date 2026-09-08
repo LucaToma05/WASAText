@@ -51,16 +51,13 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-
-	//Check text length
+	// Check text length
 	if len(obj.Text) < 1 || len(obj.Text) > 1000 {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	//Check text pattern
-	//match, _ := regexp.MatchString("^(?=.*\\S).+$", obj.Text)
-	
+	// Check text pattern
 	match, _ := regexp.MatchString("\\S", obj.Text)
 	if !match {
 		http.Error(w, "Invalid text pattern", http.StatusBadRequest)
@@ -91,7 +88,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err = json.NewEncoder(w).Encode(obj); err != nil {
+	if err = json.NewEncoder(w).Encode(newMessage); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

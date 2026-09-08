@@ -18,40 +18,14 @@
 
       <!-- LISTA CHAT -->
       <div class="sidebar-content">
-        <div 
-          v-for="chat in sortedChats" 
-          :key="chat.chatId" 
-          class="chat-preview"
-          :class="{ 
-            selected: chat.chatId === selectedChatId,
-            'unread-chat': isChatUnread(chat)
-          }"
+        <ChatItem
+          v-for="chat in sortedChats"
+          :key="chat.chatId"
+          :chat="chat"
+          :is-selected="chat.chatId === selectedChatId"
+          :is-unread="isChatUnread(chat)"
           @click="openChat(chat.chatId)"
-        >
-          <img :src="chat.photo || '/default.png'" class="chat-photo" alt="Avatar">
-
-          <div class="chat-info">
-            <div class="chat-top-row">
-              <span class="chat-name">{{ chat.name }}</span>
-              <span class="chat-time">{{ formatTime(chat.lastMessageTime) }}</span>
-            </div>
-
-            <div class="chat-bottom-row">
-              <div class="chat-last-message">
-                <span v-if="isChatLastMessagePhoto(chat.lastMessage)" class="chat-last-photo">
-                  <span class="photo-icon">📷</span> Foto
-                </span>
-                <span v-else-if="formatChatLastMessage(chat.lastMessage) === 'Questo messaggio è stato eliminato'" class="chat-last-deleted">
-                  <em>Questo messaggio è stato eliminato</em>
-                </span>
-                <span v-else>
-                  {{ formatChatLastMessage(chat.lastMessage) }}
-                </span>
-              </div>
-              <span v-if="isChatUnread(chat)" class="unread-dot" title="Nuovo messaggio non letto"></span>
-            </div>
-          </div>
-        </div>
+        />
       </div>
 
     </div>
@@ -376,363 +350,77 @@
 
     </div>
 
-    <!-- MODAL CREA CHAT -->
-    <div v-if="showCreateChat" class="modal-overlay" @click.self="closeCreateChat">
-      <div class="modal-card">
+    <!-- MODALI ESTRATTI -->
+    <CreateChatModal
+      v-if="showCreateChat"
+      @close="closeCreateChat"
+      @created="onChatCreated"
+    />
 
-        <h2 class="modal-title">Crea nuova chat</h2>
+    <CreateGroupModal
+      v-if="showCreateGroup"
+      @close="closeCreateGroup"
+      @created="onGroupCreated"
+    />
 
-        <input 
-          v-model="newChatUsername"
-          type="text"
-          placeholder="Username dell'utente"
-          class="modal-input"
-        />
+    <GroupSettingsModal
+      v-if="showGroupSettings && selectedChat && selectedChat.isGroup"
+      :chat="selectedChat"
+      :current-user-id="userId"
+      @close="closeGroupSettings"
+      @name-updated="onGroupNameUpdated"
+      @photo-updated="onGroupPhotoUpdated"
+      @member-added="onGroupMemberAdded"
+      @left-group="onGroupLeft"
+    />
 
-        <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
+    <ForwardModal
+      v-if="showForwardModal && messageToForward"
+      :message="messageToForward"
+      :chats="chats"
+      :current-chat-id="selectedChatId"
+      @close="closeForwardModal"
+      @forwarded="onMessageForwarded"
+    />
 
-        <div class="modal-buttons">
-          <button class="btn-primary" @click="createChat">Crea chat</button>
-          <button class="btn-secondary" @click="closeCreateChat">Annulla</button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- MODAL CREA GRUPPO -->
-    <div v-if="showCreateGroup" class="modal-overlay" @click.self="closeCreateGroup">
-      <div class="modal-card modal-group-card">
-
-        <h2 class="modal-title">Nuovo Gruppo</h2>
-
-        <!-- Nome Gruppo -->
-        <div class="modal-form-group">
-          <label class="modal-label">Nome del gruppo *</label>
-          <input 
-            v-model="groupName"
-            type="text"
-            placeholder="Nome del gruppo (3-25 caratteri)"
-            class="modal-input modal-input-compact"
-            maxlength="25"
-          />
-        </div>
-
-        <!-- Foto Gruppo -->
-        <div class="modal-form-group">
-          <label class="modal-label">Foto del gruppo (opzionale)</label>
-          <div class="photo-input-section">
-            <div v-if="groupPhoto" class="photo-preview-box">
-              <img :src="groupPhoto" class="group-photo-preview" alt="Anteprima foto" />
-              <button type="button" class="btn-clear-photo" @click="groupPhoto = ''" title="Rimuovi foto">✕</button>
-            </div>
-            <div class="photo-inputs-wrapper">
-              <input 
-                v-model="groupPhoto"
-                type="url"
-                placeholder="Incolla il link (URL) dell'immagine..."
-                class="modal-input modal-input-compact"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Selezione Utenti -->
-        <div class="modal-form-group">
-          <label class="modal-label">Partecipanti</label>
-          <div class="add-user-row">
-            <input 
-              v-model="userToAdd"
-              type="text"
-              placeholder="Username partecipante..."
-              class="modal-input modal-input-compact"
-              @keyup.enter.prevent="addParticipant"
-            />
-            <button type="button" class="btn-add-chip" @click="addParticipant">Aggiungi</button>
-          </div>
-
-
-
-          <!-- Membri selezionati -->
-          <div class="selected-users-box">
-            <span class="selected-title">Membri selezionati ({{ selectedParticipants.length }}):</span>
-            <div v-if="selectedParticipants.length === 0" class="no-users-hint">
-              Nessun altro utente selezionato. Tu verrai incluso automaticamente.
-            </div>
-            <div v-else class="chips-container">
-              <span 
-                v-for="user in selectedParticipants" 
-                :key="user" 
-                class="user-chip"
-              >
-                {{ user }}
-                <button type="button" class="chip-remove-btn" @click="removeParticipant(user)" title="Rimuovi">✕</button>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <p v-if="groupErrorMsg" class="error-msg">{{ groupErrorMsg }}</p>
-
-        <div class="modal-buttons">
-          <button class="btn-primary" :disabled="isCreatingGroup" @click="createGroup">
-            {{ isCreatingGroup ? 'Creazione in corso...' : 'Crea gruppo' }}
-          </button>
-          <button class="btn-secondary" @click="closeCreateGroup">Annulla</button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- MODAL GESTIONE GRUPPO -->
-    <div v-if="showGroupSettings" class="modal-overlay" @click.self="closeGroupSettings">
-      <div class="modal-card modal-group-card">
-
-        <div class="modal-header-row">
-          <h2 class="modal-title">Gestione Gruppo</h2>
-          <button type="button" class="btn-close-modal" @click="closeGroupSettings" title="Chiudi">✕</button>
-        </div>
-
-        <!-- Modifica Nome Gruppo -->
-        <div class="modal-form-group">
-          <label class="modal-label">Nome del gruppo</label>
-          <div class="input-with-action">
-            <input 
-              v-model="editGroupName"
-              type="text"
-              placeholder="Nome del gruppo (3-25 caratteri)"
-              class="modal-input modal-input-compact"
-              maxlength="25"
-            />
-            <button 
-              type="button" 
-              class="btn-action-small"
-              :disabled="isSavingGroupName || !editGroupName.trim() || editGroupName.trim() === selectedChat?.name"
-              @click="updateGroupName"
-            >
-              {{ isSavingGroupName ? 'Salvataggio...' : 'Aggiorna' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Modifica Foto Gruppo (solo URL) -->
-        <div class="modal-form-group">
-          <label class="modal-label">Foto del gruppo (URL immagine)</label>
-          <div class="photo-edit-section">
-            <div v-if="editGroupPhoto" class="photo-preview-box">
-              <img :src="editGroupPhoto" class="group-photo-preview" alt="Anteprima foto" />
-              <button type="button" class="btn-clear-photo" @click="editGroupPhoto = ''" title="Rimuovi foto">✕</button>
-            </div>
-            <div class="input-with-action">
-              <input 
-                v-model="editGroupPhoto"
-                type="url"
-                placeholder="Incolla il link (URL) dell'immagine..."
-                class="modal-input modal-input-compact"
-              />
-              <button 
-                type="button" 
-                class="btn-action-small"
-                :disabled="isSavingGroupPhoto || !editGroupPhoto.trim() || editGroupPhoto.trim() === selectedChat?.photo"
-                @click="updateGroupPhoto"
-              >
-                {{ isSavingGroupPhoto ? 'Salvataggio...' : 'Aggiorna' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Aggiungi Nuovi Partecipanti -->
-        <div class="modal-form-group">
-          <label class="modal-label">Aggiungi nuovo membro (cerca utente WASAText)</label>
-          <div class="input-with-action">
-            <input 
-              v-model="newMemberUsername"
-              type="text"
-              placeholder="Username partecipante..."
-              class="modal-input modal-input-compact"
-              @keyup.enter="addMemberToGroup"
-            />
-            <button 
-              type="button" 
-              class="btn-action-small btn-primary-small"
-              :disabled="isAddingMember || !newMemberUsername.trim()"
-              @click="addMemberToGroup"
-            >
-              {{ isAddingMember ? 'Aggiunta...' : 'Aggiungi' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Feedback stato -->
-        <p v-if="groupSettingsSuccess" class="success-msg">{{ groupSettingsSuccess }}</p>
-        <p v-if="groupSettingsError" class="error-msg">{{ groupSettingsError }}</p>
-
-        <hr class="modal-divider" />
-
-        <!-- Danger Zone: Abbandona Gruppo -->
-        <div class="modal-danger-zone">
-          <button 
-            type="button" 
-            class="btn-danger"
-            :disabled="isLeavingGroup"
-            @click="leaveGroup"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            {{ isLeavingGroup ? 'Uscita in corso...' : 'Abbandona Gruppo' }}
-          </button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- MODAL INOLTRA MESSAGGIO -->
-    <div v-if="showForwardModal" class="modal-overlay" @click.self="closeForwardModal">
-      <div class="modal-card modal-forward-card">
-        <div class="modal-card-header">
-          <h2 class="modal-title">Inoltra messaggio</h2>
-          <button type="button" class="btn-close-modal" @click="closeForwardModal">✕</button>
-        </div>
-
-        <!-- Anteprima messaggio da inoltrare -->
-        <div v-if="messageToForward" class="forward-msg-preview-card">
-          <div class="forward-msg-preview-label">Contenuto da inoltrare:</div>
-          <div class="forward-msg-preview-content">
-            <span v-if="isMessagePhoto(getParsedMessage(messageToForward).text)" class="photo-indicator">
-              📷 Foto: {{ getParsedMessage(messageToForward).text }}
-            </span>
-            <span v-else>{{ getMessageSnippet(getParsedMessage(messageToForward).text, 140) }}</span>
-          </div>
-        </div>
-
-        <!-- Barra di ricerca chat per inoltro -->
-        <input 
-          v-model="forwardSearchQuery"
-          type="text"
-          placeholder="Cerca conversazione o gruppo a cui inoltrare..."
-          class="modal-input modal-input-compact"
-        />
-
-        <!-- Messaggi di errore o successo -->
-        <p v-if="forwardSuccess" class="success-msg">{{ forwardSuccess }}</p>
-        <p v-if="forwardError" class="error-msg">{{ forwardError }}</p>
-
-        <!-- Lista conversazioni destinatarie -->
-        <div class="forward-chats-list">
-          <div 
-            v-for="chat in forwardableChats" 
-            :key="chat.chatId"
-            class="forward-chat-row"
-            @click="forwardToChat(chat)"
-          >
-            <img :src="chat.photo || '/default.png'" class="forward-chat-avatar" alt="Foto chat" />
-            <div class="forward-chat-meta">
-              <div class="forward-chat-title">{{ chat.name }}</div>
-              <span v-if="chat.isGroup" class="chat-header-badge">Gruppo</span>
-            </div>
-            <button 
-              type="button" 
-              class="btn-action-small btn-primary-small"
-              :disabled="isForwarding"
-            >
-              {{ isForwarding && targetForwardChatId === chat.chatId ? 'Invio...' : 'Inoltra' }}
-            </button>
-          </div>
-
-          <div v-if="forwardableChats.length === 0" class="no-chats-found">
-            Nessun'altra conversazione disponibile
-          </div>
-        </div>
-
-        <div class="modal-buttons">
-          <button type="button" class="btn-secondary" @click="closeForwardModal">Chiudi</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL INVIO FOTO -->
-    <div v-if="showPhotoModal" class="modal-overlay" @click.self="closePhotoModal">
-      <div class="modal-card modal-photo-card">
-        <div class="modal-card-header">
-          <h2 class="modal-title">Invia foto</h2>
-          <button type="button" class="btn-close-modal" @click="closePhotoModal" title="Chiudi">✕</button>
-        </div>
-
-        <p class="modal-photo-desc">Incolla il link (URL) dell'immagine da inviare nella conversazione:</p>
-
-        <!-- Anteprima real-time della foto se inserita -->
-        <div v-if="newPhotoUrl.trim()" class="modal-photo-preview-wrap">
-          <img 
-            :src="newPhotoUrl.trim()" 
-            class="modal-photo-preview-img" 
-            alt="Anteprima foto" 
-            @error="onPhotoPreviewError"
-          />
-        </div>
-
-        <input 
-          ref="photoUrlInput"
-          v-model="newPhotoUrl"
-          type="url"
-          placeholder="https://esempio.com/foto.jpg"
-          class="modal-input"
-          @keyup.enter="sendPhotoMessage"
-        />
-
-        <p v-if="photoErrorMsg" class="error-msg">{{ photoErrorMsg }}</p>
-
-        <div class="modal-buttons">
-          <button 
-            type="button" 
-            class="btn-primary" 
-            :disabled="isSendingPhoto || !newPhotoUrl.trim()" 
-            @click="sendPhotoMessage"
-          >
-            {{ isSendingPhoto ? 'Invio in corso...' : 'Invia' }}
-          </button>
-          <button type="button" class="btn-secondary" @click="closePhotoModal">Annulla</button>
-        </div>
-      </div>
-    </div>
+    <PhotoModal
+      v-if="showPhotoModal"
+      :is-sending="isSendingPhoto"
+      @close="closePhotoModal"
+      @send="sendPhotoMessage"
+    />
 
   </div>
 </template>
 
 <script>
+import ChatItem from '../components/ChatItem.vue'
+import CreateChatModal from '../components/CreateChatModal.vue'
+import CreateGroupModal from '../components/CreateGroupModal.vue'
+import GroupSettingsModal from '../components/GroupSettingsModal.vue'
+import ForwardModal from '../components/ForwardModal.vue'
+import PhotoModal from '../components/PhotoModal.vue'
+
 export default {
+  name: "HomeView",
+  components: {
+    ChatItem,
+    CreateChatModal,
+    CreateGroupModal,
+    GroupSettingsModal,
+    ForwardModal,
+    PhotoModal
+  },
   data() {
     return {
       showCreateChat: false,
-      newChatUsername: "",
-      errorMsg: "",
       chats: [],
       selectedChat: null,
       selectedChatId: null,
       newMessage: "",
       userId: localStorage.getItem("userId") || localStorage.getItem("token"),
-      // Stato modale Nuovo Gruppo
       showCreateGroup: false,
-      groupName: "",
-      groupPhoto: "",
-      userToAdd: "",
-      selectedParticipants: [],
-      groupErrorMsg: "",
-      isCreatingGroup: false,
-
-      // Stato modale Gestione Gruppo
       showGroupSettings: false,
-      editGroupName: "",
-      editGroupPhoto: "",
-      newMemberUsername: "",
-      groupSettingsError: "",
-      groupSettingsSuccess: "",
-      isSavingGroupName: false,
-      isSavingGroupPhoto: false,
-      isAddingMember: false,
-      isLeavingGroup: false,
 
       // Reazioni (4 emoji: 👍, ❤️, 😂, 😮)
       reactionEmojis: ['👍', '❤️', '😂', '😮'],
@@ -745,16 +433,9 @@ export default {
       // Inoltro
       showForwardModal: false,
       messageToForward: null,
-      forwardSearchQuery: "",
-      forwardSuccess: "",
-      forwardError: "",
-      isForwarding: false,
-      targetForwardChatId: null,
 
       // Invio foto
       showPhotoModal: false,
-      newPhotoUrl: "",
-      photoErrorMsg: "",
       isSendingPhoto: false,
 
       // Messaggi eliminati (tombstones)
@@ -766,15 +447,6 @@ export default {
     sortedChats() {
       return [...this.chats].sort((a, b) => {
         return new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0);
-      });
-    },
-
-    forwardableChats() {
-      const q = this.forwardSearchQuery.trim().toLowerCase();
-      return this.chats.filter(c => {
-        const isNotCurrent = c.chatId !== this.selectedChatId;
-        const matchesQuery = !q || (c.name && c.name.toLowerCase().includes(q));
-        return isNotCurrent && matchesQuery;
       });
     }
   },
@@ -895,35 +567,10 @@ export default {
       }
     },
 
-    async createChat() {
-      if (this.newChatUsername.trim() === "") {
-        this.errorMsg = "Inserisci un username";
-        return;
-      }
-
-      try {
-        const response = await this.$axios.post(
-          "/chats",
-          {
-            type: false,
-            name: this.newChatUsername
-          },
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        await this.loadChats();
-        const newChatId = response.data.chatId || response.data.id;
-        if (newChatId) {
-          await this.openChat(newChatId);
-        }
-        this.closeCreateChat();
-
-      } catch (err) {
-        this.errorMsg = err.response?.data || "Errore creazione chat";
+    async onChatCreated(newChatId) {
+      await this.loadChats();
+      if (newChatId) {
+        await this.openChat(newChatId);
       }
     },
 
@@ -970,34 +617,17 @@ export default {
       }
     },
 
-  openPhotoModal() {
-      this.newPhotoUrl = "";
-      this.photoErrorMsg = "";
+    openPhotoModal() {
       this.showPhotoModal = true;
-      this.$nextTick(() => {
-        if (this.$refs.photoUrlInput) {
-          this.$refs.photoUrlInput.focus();
-        }
-      });
     },
 
     closePhotoModal() {
       this.showPhotoModal = false;
-      this.newPhotoUrl = "";
-      this.photoErrorMsg = "";
       this.isSendingPhoto = false;
     },
 
-    onPhotoPreviewError() {
-      // Fallback opzionale se l'immagine non può essere caricata
-    },
-
-    async sendPhotoMessage() {
-      const url = this.newPhotoUrl.trim();
-      if (!url) {
-        this.photoErrorMsg = "Inserisci l'URL di un'immagine";
-        return;
-      }
+    async sendPhotoMessage(url) {
+      if (!url) return;
 
       let messageText = url;
 
@@ -1019,7 +649,6 @@ export default {
       }
 
       this.isSendingPhoto = true;
-      this.photoErrorMsg = "";
 
       try {
         await this.$axios.post(
@@ -1043,7 +672,7 @@ export default {
         this.scrollToBottom();
 
       } catch (err) {
-        this.photoErrorMsg = err.response?.data || "Errore durante l'invio della foto";
+        console.error("Errore durante l'invio della foto:", err);
       } finally {
         this.isSendingPhoto = false;
       }
@@ -1432,50 +1061,16 @@ export default {
 
     openForwardModal(msg) {
       this.messageToForward = msg;
-      this.forwardSearchQuery = "";
-      this.forwardSuccess = "";
-      this.forwardError = "";
       this.showForwardModal = true;
     },
 
     closeForwardModal() {
       this.showForwardModal = false;
       this.messageToForward = null;
-      this.forwardSearchQuery = "";
-      this.forwardSuccess = "";
-      this.forwardError = "";
-      this.isForwarding = false;
-      this.targetForwardChatId = null;
     },
 
-    async forwardToChat(targetChat) {
-      if (!this.messageToForward || !targetChat) return;
-      this.isForwarding = true;
-      this.targetForwardChatId = targetChat.chatId;
-      this.forwardError = "";
-      this.forwardSuccess = "";
-
-      try {
-        await this.$axios.post(
-          `/chats/${this.selectedChatId}/messages/${this.messageToForward.id}/forward`,
-          { userId: targetChat.chatId },
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        this.forwardSuccess = `Messaggio inoltrato con successo a "${targetChat.name}"!`;
-        setTimeout(() => {
-          this.closeForwardModal();
-        }, 800);
-      } catch (err) {
-        this.forwardError = err.response?.data || "Errore durante l'inoltro del messaggio";
-      } finally {
-        this.isForwarding = false;
-        this.targetForwardChatId = null;
-      }
+    onMessageForwarded(targetChat) {
+      this.loadChats();
     },
 
     isMyMessage(message) {
@@ -1744,277 +1339,62 @@ export default {
 
     closeCreateChat() {
       this.showCreateChat = false;
-      this.newChatUsername = "";
-      this.errorMsg = "";
     },
 
     openCreateGroupModal() {
       this.showCreateGroup = true;
-      this.groupName = "";
-      this.groupPhoto = "";
-      this.userToAdd = "";
-      this.selectedParticipants = [];
-      this.groupErrorMsg = "";
-      this.isCreatingGroup = false;
     },
 
     closeCreateGroup() {
       this.showCreateGroup = false;
-      this.groupName = "";
-      this.groupPhoto = "";
-      this.userToAdd = "";
-      this.selectedParticipants = [];
-      this.groupErrorMsg = "";
-      this.isCreatingGroup = false;
     },
 
-    addParticipant() {
-      const u = this.userToAdd.trim();
-      if (!u) return;
-      if (this.selectedParticipants.includes(u)) {
-        this.groupErrorMsg = `L'utente "${u}" è già stato aggiunto`;
-        return;
-      }
-      this.selectedParticipants.push(u);
-      this.userToAdd = "";
-      this.groupErrorMsg = "";
-    },
-
-    removeParticipant(username) {
-      this.selectedParticipants = this.selectedParticipants.filter(u => u !== username);
-    },
-
-
-
-    async createGroup() {
-      if (this.groupName.trim() === "") {
-        this.groupErrorMsg = "Inserisci il nome del gruppo";
-        return;
-      }
-      if (this.groupName.trim().length < 3 || this.groupName.trim().length > 25) {
-        this.groupErrorMsg = "Il nome del gruppo deve essere tra 3 e 25 caratteri";
-        return;
-      }
-
-      this.isCreatingGroup = true;
-      this.groupErrorMsg = "";
-
-      try {
-        const response = await this.$axios.post(
-          "/chats",
-          {
-            type: true,
-            isGroup: true,
-            name: this.groupName.trim(),
-            photo: this.groupPhoto.trim(),
-            participants: this.selectedParticipants
-          },
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        await this.loadChats();
-        const newChatId = response.data.chatId || response.data.id;
-        if (newChatId) {
-          await this.openChat(newChatId);
-        }
-
-        this.closeCreateGroup();
-      } catch (err) {
-        this.groupErrorMsg = err.response?.data || "Errore durante la creazione del gruppo";
-      } finally {
-        this.isCreatingGroup = false;
+    async onGroupCreated(newChatId) {
+      await this.loadChats();
+      if (newChatId) {
+        await this.openChat(newChatId);
       }
     },
 
     openGroupSettings() {
       if (!this.selectedChat || !this.selectedChat.isGroup) return;
-      this.editGroupName = this.selectedChat.name || "";
-      this.editGroupPhoto = this.selectedChat.photo || "";
-      this.newMemberUsername = "";
-      this.groupSettingsError = "";
-      this.groupSettingsSuccess = "";
       this.showGroupSettings = true;
     },
 
     closeGroupSettings() {
       this.showGroupSettings = false;
-      this.groupSettingsError = "";
-      this.groupSettingsSuccess = "";
-      this.newMemberUsername = "";
     },
 
-    async updateGroupName() {
-      const name = this.editGroupName.trim();
-      if (!name) {
-        this.groupSettingsError = "Inserisci un nome per il gruppo";
-        return;
+    onGroupNameUpdated(newName) {
+      if (this.selectedChat) this.selectedChat.name = newName;
+      const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
+      if (chatInList) {
+        chatInList.name = newName;
+        chatInList.displayName = newName;
       }
-      if (name.length < 3 || name.length > 25) {
-        this.groupSettingsError = "Il nome del gruppo deve essere tra 3 e 25 caratteri";
-        return;
+      this.loadChats();
+    },
+
+    onGroupPhotoUpdated(newPhoto) {
+      if (this.selectedChat) this.selectedChat.photo = newPhoto;
+      const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
+      if (chatInList) {
+        chatInList.photo = newPhoto;
       }
+      this.loadChats();
+    },
 
-      this.isSavingGroupName = true;
-      this.groupSettingsError = "";
-      this.groupSettingsSuccess = "";
-
-      try {
-        await this.$axios.patch(
-          `/chats/${this.selectedChatId}/name`,
-          { name },
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        this.selectedChat.name = name;
-        const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
-        if (chatInList) {
-          chatInList.name = name;
-          chatInList.displayName = name;
-        }
-        await this.loadChats();
-        this.groupSettingsSuccess = "Nome del gruppo aggiornato con successo!";
-      } catch (err) {
-        this.groupSettingsError = err.response?.data || "Errore durante l'aggiornamento del nome";
-      } finally {
-        this.isSavingGroupName = false;
+    onGroupMemberAdded(username) {
+      this.loadChats();
+      if (this.selectedChatId) {
+        this.openChat(this.selectedChatId);
       }
     },
 
-    async updateGroupPhoto() {
-      const photoUrl = this.editGroupPhoto.trim();
-      if (!photoUrl) {
-        this.groupSettingsError = "Inserisci un URL valido per la foto del gruppo";
-        return;
-      }
-      if (photoUrl.length < 3) {
-        this.groupSettingsError = "La foto specificata non è valida";
-        return;
-      }
-
-      this.isSavingGroupPhoto = true;
-      this.groupSettingsError = "";
-      this.groupSettingsSuccess = "";
-
-      try {
-        await this.$axios.put(
-          `/chats/${this.selectedChatId}/photo`,
-          { url: photoUrl },
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        this.selectedChat.photo = photoUrl;
-        const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
-        if (chatInList) {
-          chatInList.photo = photoUrl;
-        }
-        await this.loadChats();
-        this.groupSettingsSuccess = "Foto del gruppo aggiornata con successo!";
-      } catch (err) {
-        this.groupSettingsError = err.response?.data || "Errore durante l'aggiornamento della foto";
-      } finally {
-        this.isSavingGroupPhoto = false;
-      }
-    },
-
-    async addMemberToGroup() {
-      const username = this.newMemberUsername.trim();
-      if (!username) {
-        this.groupSettingsError = "Inserisci un username";
-        return;
-      }
-      if (username.length < 3 || username.length > 16) {
-        this.groupSettingsError = "Lo username deve essere tra 3 e 16 caratteri";
-        return;
-      }
-
-      const currentUserId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
-      if (username === currentUserId) {
-        this.groupSettingsError = "Fai già parte di questo gruppo!";
-        return;
-      }
-
-      this.isAddingMember = true;
-      this.groupSettingsError = "";
-      this.groupSettingsSuccess = "";
-
-      try {
-        // Verifica se l'utente esiste sulla piattaforma WASAText
-        try {
-          await this.$axios.get("/users", {
-            params: { username },
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          });
-        } catch (searchErr) {
-          if (searchErr.response?.status === 404) {
-            this.groupSettingsError = `L'utente "${username}" non esiste su WASAText.`;
-            return;
-          }
-        }
-
-        // Aggiungi al gruppo tramite addToGroup
-        await this.$axios.post(
-          `/chats/${this.selectedChatId}/members`,
-          { userId: username },
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        this.groupSettingsSuccess = `Utente "${username}" aggiunto al gruppo con successo!`;
-        this.newMemberUsername = "";
-      } catch (err) {
-        if (err.response?.status === 500 || err.response?.status === 400) {
-          this.groupSettingsError = `Impossibile aggiungere "${username}". Potrebbe essere già membro del gruppo.`;
-        } else {
-          this.groupSettingsError = err.response?.data || `Errore nell'aggiunta dell'utente "${username}"`;
-        }
-      } finally {
-        this.isAddingMember = false;
-      }
-    },
-
-    async leaveGroup() {
-      const confirmed = window.confirm(`Sei sicuro di voler abbandonare il gruppo "${this.selectedChat.name}"?`);
-      if (!confirmed) return;
-
-      this.isLeavingGroup = true;
-      this.groupSettingsError = "";
-
-      try {
-        await this.$axios.delete(
-          `/chats/${this.selectedChatId}/members`,
-          {
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          }
-        );
-
-        this.closeGroupSettings();
-        this.selectedChat = null;
-        this.selectedChatId = null;
-        await this.loadChats();
-      } catch (err) {
-        this.groupSettingsError = err.response?.data || "Errore durante l'uscita dal gruppo";
-      } finally {
-        this.isLeavingGroup = false;
-      }
+    onGroupLeft(chatId) {
+      this.selectedChat = null;
+      this.selectedChatId = null;
+      this.loadChats();
     }
   },
 
@@ -2039,9 +1419,10 @@ export default {
 </script>
 
 <style scoped>
-/* Layout orizzontale */
+/* Layout orizzontale fisso a 2 colonne su qualsiasi risoluzione */
 .home-layout {
   display: flex;
+  flex-direction: row;
   width: 100%;
   height: 100%;
   max-height: 100%;
@@ -2049,11 +1430,14 @@ export default {
   overflow: hidden;
   background-color: #e2fff8;
   box-sizing: border-box;
+  padding: 10px 14px 10px 0;
 }
 
-/* Sidebar */
+/* Sidebar fluida e proporzionata */
 .home-sidebar {
-  width: 30%;
+  width: clamp(260px, 28vw, 380px);
+  min-width: 240px;
+  max-width: 420px;
   height: 100%;
   max-height: 100%;
   min-height: 0;
@@ -2062,9 +1446,11 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
 
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
   border-radius: 0 22px 22px 0;
+  box-sizing: border-box;
 }
 
 /* Barra superiore */
@@ -2073,39 +1459,47 @@ export default {
   justify-content: space-between;
   align-items: center;
 
-  padding: 20px;
+  padding: 14px 16px;
   border-bottom: 2px solid #ccc;
 
   background-color: #ffffff;
   border-radius: 0 22px 0 0;
+  flex-shrink: 0;
+  gap: 8px;
+  box-sizing: border-box;
 }
 
 .left-buttons {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
 }
 
 .right-button {
   display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 /* Bottoni */
 .sidebar-btn {
-  padding: 12px 18px;
+  padding: 10px 14px;
   background-color: #222;
   color: white;
   border: none;
-  border-radius: 14px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: 0.25s ease;
+  white-space: nowrap;
 }
 
 .sidebar-btn:hover {
   background-color: #444;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
 
 /* LISTA CHAT */
@@ -2213,7 +1607,8 @@ export default {
 
 /* Area principale */
 .home-main-area {
-  width: 70%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   max-height: 100%;
   min-height: 0;
@@ -2222,9 +1617,10 @@ export default {
   overflow: hidden;
   background-color: #d9f7ff;
   border-radius: 22px;
-  margin-left: 20px;
+  margin-left: 14px;
 
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-sizing: border-box;
 }
 
 .empty-chat {
@@ -2239,298 +1635,6 @@ export default {
   padding: 20px;
 }
 
-
-/* MODAL */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 500;
-}
-
-.modal-card {
-  background-color: #ffffff;
-  padding: 40px;
-  border-radius: 22px;
-  width: 420px;
-
-  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
-.modal-title {
-  font-size: 32px;
-  font-weight: bold;
-  color: #222;
-  text-align: center;
-}
-
-.modal-input {
-  width: 100%;
-  height: 60px;
-  font-size: 22px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 2px solid #555;
-  background-color: #f5f5f5;
-  transition: 0.25s ease;
-}
-
-.modal-input:focus {
-  border-color: #000;
-  background-color: #fff;
-  outline: none;
-  box-shadow: 0 0 10px rgba(0,0,0,0.15);
-}
-
-.error-msg {
-  color: red;
-  font-size: 18px;
-  text-align: center;
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: space-between;
-}
-
-.btn-primary {
-  padding: 12px 18px;
-  background-color: #222;
-  color: white;
-  border: none;
-  border-radius: 14px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.25s ease;
-}
-
-.btn-primary:hover {
-  background-color: #444;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.25);
-}
-
-.btn-secondary {
-  padding: 12px 18px;
-  background-color: #ccc;
-  border: none;
-  border-radius: 14px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: 0.25s ease;
-}
-
-.btn-secondary:hover {
-  background-color: #bbb;
-}
-
-/* Stili specifici per Modal Gruppo */
-.modal-group-card {
-  width: 500px;
-  max-width: 95%;
-  max-height: 90vh;
-  overflow-y: auto;
-  gap: 18px;
-  padding: 30px;
-}
-
-.modal-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-}
-
-.modal-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-
-.modal-input-compact {
-  height: 48px;
-  font-size: 16px;
-  padding: 8px 14px;
-}
-
-.photo-input-section {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-.photo-preview-box {
-  position: relative;
-  width: 60px;
-  height: 60px;
-  flex-shrink: 0;
-}
-
-.group-photo-preview {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #222;
-}
-
-.btn-clear-photo {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 20px;
-  height: 20px;
-  background: #ff4d4f;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.photo-inputs-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-
-.add-user-row {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-add-chip {
-  padding: 0 16px;
-  background-color: #222;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: 0.2s;
-}
-
-.btn-add-chip:hover {
-  background-color: #444;
-}
-
-.suggested-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-.suggested-title {
-  font-size: 12px;
-  color: #666;
-  font-weight: 500;
-}
-
-.suggested-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-height: 70px;
-  overflow-y: auto;
-}
-
-.contact-tag {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 12px;
-  border: 1px solid #bbb;
-  background-color: #f5f5f5;
-  color: #333;
-  cursor: pointer;
-  transition: 0.15s ease;
-}
-
-.contact-tag:hover {
-  background-color: #e0e0e0;
-}
-
-.contact-tag.tag-active {
-  background-color: #222;
-  color: white;
-  border-color: #222;
-}
-
-.selected-users-box {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  border: 1px dashed #ccc;
-}
-
-.selected-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-}
-
-.no-users-hint {
-  font-size: 12px;
-  color: #888;
-  font-style: italic;
-}
-
-.chips-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-height: 90px;
-  overflow-y: auto;
-}
-
-.user-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #e6f4ff;
-  color: #0050b3;
-  border: 1px solid #91caff;
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.chip-remove-btn {
-  background: none;
-  border: none;
-  color: #0050b3;
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.chip-remove-btn:hover {
-  color: #ff4d4f;
-}
 
 /* AREA CHAT */
 .chat-area {
@@ -2622,122 +1726,6 @@ export default {
 
 .header-settings-btn:active {
   transform: scale(0.92);
-}
-
-/* Modale Gestione Gruppo */
-.modal-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.btn-close-modal {
-  background: transparent;
-  border: none;
-  font-size: 20px;
-  color: #888;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  line-height: 1;
-}
-
-.btn-close-modal:hover {
-  background-color: #eee;
-  color: #111;
-}
-
-.input-with-action {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.btn-action-small {
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  background-color: #f8fafc;
-  color: #222;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  height: 46px;
-  box-sizing: border-box;
-}
-
-.btn-action-small:hover:not(:disabled) {
-  background-color: #e2e8f0;
-}
-
-.btn-action-small:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary-small {
-  background-color: #222;
-  color: #fff;
-  border-color: #222;
-}
-
-.btn-primary-small:hover:not(:disabled) {
-  background-color: #000;
-}
-
-.photo-edit-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.success-msg {
-  color: #16a34a;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  margin: 4px 0;
-}
-
-.modal-divider {
-  border: none;
-  border-top: 1px solid #e2e8f0;
-  margin: 12px 0;
-}
-
-.modal-danger-zone {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  border: 1px solid #fca5a5;
-  background-color: #fef2f2;
-  color: #dc2626;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: #dc2626;
-  color: #ffffff;
-  border-color: #dc2626;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-}
-
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* Messaggi: Container Flexbox in colonna con scroll dedicato */
@@ -3417,39 +2405,6 @@ export default {
   background-color: #444;
 }
 
-/* Modale Invio Foto */
-.modal-photo-card {
-  width: 440px;
-  max-width: 92%;
-  gap: 16px;
-}
-
-.modal-photo-desc {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
-}
-
-.modal-photo-preview-wrap {
-  width: 100%;
-  max-height: 220px;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-}
-
-.modal-photo-preview-img {
-  max-width: 100%;
-  max-height: 220px;
-  object-fit: contain;
-  display: block;
-}
-
-
 
 .chat-last-deleted {
   font-style: italic;
@@ -3461,60 +2416,70 @@ export default {
   color: #94a3b8;
 }
 
-/* MOBILE */
-@media (max-width: 900px) {
-  .home-layout {
-    flex-direction: column;
-    padding: 10px;
-    overflow-y: auto;
-  }
-
+/* RESPONSIVE: preserva sempre il layout affiancato su 2 colonne senza scroll verticale dell'intera pagina */
+@media (max-width: 1024px) {
   .home-sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 280px;
-    border-radius: 22px;
-    border-right: none;
-    border-bottom: 2px solid #ccc;
-    flex-shrink: 0;
+    width: clamp(230px, 30vw, 300px);
+    min-width: 220px;
   }
 
   .sidebar-top-bar {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  .left-buttons,
-  .right-button {
-    justify-content: center;
+    padding: 12px 12px;
+    gap: 6px;
   }
 
   .sidebar-btn {
-    width: 100%;
-    text-align: center;
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-layout {
+    padding: 6px 8px 6px 0;
+  }
+
+  .home-sidebar {
+    width: clamp(200px, 34vw, 260px);
+    min-width: 190px;
   }
 
   .home-main-area {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 20px;
-    border-radius: 22px;
-    flex: 1;
-    min-height: 400px;
+    margin-left: 8px;
+    border-radius: 16px;
   }
 
-  .modal-card {
-    width: 90%;
+  .sidebar-top-bar {
+    padding: 10px 8px;
+    gap: 4px;
+  }
+
+  .left-buttons {
+    gap: 4px;
+  }
+
+  .sidebar-btn {
+    padding: 7px 8px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .chat-header {
+    padding: 10px 14px;
+  }
+
+  .chat-header-title {
+    font-size: 17px;
   }
 
   .messages {
-    padding: 12px;
+    padding: 10px;
     gap: 8px;
   }
 
   .message-wrapper {
-    max-width: 85%;
+    max-width: 88%;
   }
 
   .message {
@@ -3526,12 +2491,27 @@ export default {
     font-size: 14px;
   }
 
-  .message-sender {
-    font-size: 11px;
+  .send-box {
+    padding: 8px 12px;
+    gap: 8px;
   }
 
-  .timestamp {
-    font-size: 10px;
+  .send-box input {
+    padding: 10px 12px;
+    font-size: 13px;
   }
+
+  .send-box .btn-send-message {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+.message-sender {
+  font-size: 11px;
+}
+
+.timestamp {
+  font-size: 10px;
 }
 </style>

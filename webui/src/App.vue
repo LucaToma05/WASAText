@@ -17,18 +17,22 @@ import { RouterView } from 'vue-router'
 <style>
 .app-root {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* Header verde */
 .navbar {
   background-color: rgb(17, 209, 17);
   margin: 0;
-  padding: 0;
-  height: 100px;
+  padding: 0 20px;
+  height: clamp(60px, 8vh, 80px);
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 /* Spazio sotto l'header */
@@ -36,29 +40,7 @@ import { RouterView } from 'vue-router'
   flex: 1;
   display: flex;
   width: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
-</style>
-
-
-
-
-
-
-
-<!--
-<template>
-	<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-		<img src="../../public/favicon.ico" alt="logo" class="logo" />
-		<span class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-3"> 
-			WasaText
-		</span>
-	</header>
-
-	<div class="container-fluid">
-		<RouterView /> 
-	</div>
-</template>
-
-<style>
-</style>
--->
+</style>

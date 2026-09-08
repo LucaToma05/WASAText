@@ -35,14 +35,11 @@ import (
 	"errors"
 	"fmt"
 
-	//"github.com/LucaToma05/WASAText/service/api"
 	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
-	GetName() (string, error)
-	SetName(name string) error
 
 	GetIdUserByUsername(username string) (string, error)
 	CreateUser(user structure.User) error
@@ -125,7 +122,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
-	//chats table creation
+	// chat_members table creation
 	var chat_members string
 	errConv := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='chat_members';`).Scan(&chat_members)
 	if errors.Is(errConv, sql.ErrNoRows) {
@@ -196,6 +193,14 @@ func New(db *sql.DB) (AppDatabase, error) {
 			return nil, fmt.Errorf("error creating database structure: %w", errReads)
 		}
 	}
+
+	// Add deleted column for soft-delete (idempotent)
+	_, _ = db.Exec(`ALTER TABLE messages ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;`)
+
+	// Repair corrupted chat_members rows where userId was stored as username instead of users.userId
+	_, _ = db.Exec(`UPDATE OR REPLACE chat_members
+		SET userId = (SELECT u.userId FROM users u WHERE u.name = chat_members.userId)
+		WHERE EXISTS (SELECT 1 FROM users u WHERE u.name = chat_members.userId);`)
 
 	return &appdbimpl{
 		c: db,

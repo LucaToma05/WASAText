@@ -7,13 +7,11 @@ const router = createRouter({
 	history: createWebHashHistory(import.meta.env.BASE_URL),
 	routes: [
 		{path: '/', redirect: '/login'},
-		//{path: '/', component: LoginView},
 		{path: '/login', component: LoginView},
 		{path: '/home', component: HomeView},
 		{path: '/profile', component: ProfileView},
-		{path: '/link2', component: HomeView},
-		{path: '/some/:id/link', component: HomeView},
 	]
 })
 
 export default router
+

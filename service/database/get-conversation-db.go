@@ -1,21 +1,12 @@
 package database
 
-import structure "github.com/LucaToma05/WASAText/service/structure"
-import "time"
+import (
+	"time"
+
+	structure "github.com/LucaToma05/WASAText/service/structure"
+)
 
 func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]structure.Message, error) {
-	// Assicura che la tabella message_reads esista
-	_, _ = db.c.Exec(`
-		CREATE TABLE IF NOT EXISTS message_reads (
-			messageId TEXT NOT NULL,
-			userId TEXT NOT NULL,
-			readInstant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (messageId, userId)
-		);
-	`)
-
-	// Assicura che la colonna deleted esista (soft-delete)
-	_, _ = db.c.Exec(`ALTER TABLE messages ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;`)
 
 	if currentUserId != "" {
 		// 1. Registra nel database che currentUserId ha visualizzato tutti i messaggi della chat inviati da altri
@@ -57,7 +48,7 @@ func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]str
 		_, _ = db.c.Exec(`UPDATE messages SET state = 1 WHERE chatId = ? AND state = 0;`, chatId)
 	}
 
-    rows, err := db.c.Query(`
+	rows, err := db.c.Query(`
         SELECT messages.id,
                messages.text,
                messages.instant,
@@ -71,14 +62,14 @@ func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]str
         WHERE messages.chatId = ?
         ORDER BY messages.instant ASC;
     `, chatId)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var messages []structure.Message
+	var messages []structure.Message
 
-    for rows.Next() {
+	for rows.Next() {
 		var message structure.Message
 		var instantStr string
 		var senderName string
@@ -124,11 +115,11 @@ func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]str
 		messages = append(messages, message)
 	}
 
-    if err = rows.Err(); err != nil {
-        return nil, err
-    }
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 
-    return messages, nil
+	return messages, nil
 }
 
 func (db *appdbimpl) getMessageReaders(messageId string) []string {
@@ -152,7 +143,6 @@ func (db *appdbimpl) getMessageReaders(messageId string) []string {
 	}
 	return readers
 }
-
 
 func (db *appdbimpl) getComment(messageId string) ([]structure.Comment, error) {
 	rows, err := db.c.Query(`	SELECT 

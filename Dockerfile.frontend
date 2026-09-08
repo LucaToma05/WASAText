@@ -1,0 +1,20 @@
+FROM node:lts
+
+# Imposta la working directory
+WORKDIR /app
+
+# Copia i file di configurazione e le dipendenze
+COPY webui/package.json webui/yarn.lock webui/.yarnrc.yml ./
+COPY webui/.yarn ./.yarn
+
+# Installa le dipendenze con Yarn (modalità immutabile, senza modificare il lockfile)
+RUN yarn install --immutable
+
+# Copia il resto del codice sorgente del frontend
+COPY webui/ .
+
+# Espone la porta di Vite preview
+EXPOSE 4173
+
+# Builda l'app e la serve con vite preview
+CMD yarn build-dev && yarn preview --host 0.0.0.0
