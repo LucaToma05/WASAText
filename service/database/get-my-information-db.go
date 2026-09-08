@@ -8,7 +8,7 @@ import (
 )
 
 // If the user is not found, return id ""
-func (db *appdbimpl) GetMyInformation(userId string) (structure.User , error) {
+func (db *appdbimpl) GetMyInformation(userId string) (structure.User, error) {
 	var info structure.User
 
 	err := db.c.QueryRow("SELECT * FROM users WHERE userId=?", userId).Scan(&info.UserId, &info.Name, &info.Photo)
@@ -17,7 +17,7 @@ func (db *appdbimpl) GetMyInformation(userId string) (structure.User , error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return structure.User{}, nil // utente non trovato
 		}
-		return structure.User{}, err //errore DB
+		return structure.User{}, err // errore DB
 	}
 	return info, nil // restituisce informazioni
 }

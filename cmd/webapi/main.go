@@ -28,14 +28,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/LucaToma05/WASAText/service/api"
 	"github.com/LucaToma05/WASAText/service/database"
 	"github.com/LucaToma05/WASAText/service/globaltime"
 
-	//"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api"
-	//"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
-	//"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/globaltime"
 	"math/rand"
 	"net/http"
 	"os"
@@ -88,12 +86,15 @@ func run() error {
 
 	// Start Database
 	logger.Println("initializing database support")
-	//dbconn, err := sql.Open("sqlite3", cfg.DB.Filename)
-	dbconn, err := sql.Open("sqlite3", "./wasatext.db")
+	if dir := filepath.Dir(cfg.DB.Filename); dir != "" && dir != "." {
+		_ = os.MkdirAll(dir, 0755)
+	}
+	dbconn, err := sql.Open("sqlite3", cfg.DB.Filename)
 	if err != nil {
 		logger.WithError(err).Error("error opening SQLite DB")
 		return fmt.Errorf("opening SQLite: %w", err)
 	}
+	dbconn.SetMaxOpenConns(1)
 	defer func() {
 		logger.Debug("database stopping")
 		_ = dbconn.Close()

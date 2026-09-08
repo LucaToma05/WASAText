@@ -24,7 +24,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	match, _ := regexp.MatchString("^(?=.*\\S).+$", req.Name)
+	match, _ := regexp.MatchString("\\S", req.Name)
 	if !match {
 		http.Error(w, "Invalid name pattern", http.StatusBadRequest)
 		return

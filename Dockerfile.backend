@@ -32,6 +32,9 @@ WORKDIR /app
 # Copia il binario compilato dallo stage di build
 COPY --from=builder /app/webapi .
 
+# Rende la cartella /app accessibile in lettura ed esecuzione a qualsiasi utente (es. utente non-root)
+RUN chmod -R 777 /app
+
 # Espone la porta dell'API (default 3000)
 EXPOSE 3000
 

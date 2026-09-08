@@ -2,6 +2,7 @@ package database
 
 import "database/sql"
 
+// Verifica se un utente fa parte di un gruppo
 func (db *appdbimpl) CheckUserInGroup(chatId string, userId string) (bool, error) {
 	var check int
 	err := db.c.QueryRow(`	SELECT 1
@@ -11,9 +12,9 @@ func (db *appdbimpl) CheckUserInGroup(chatId string, userId string) (bool, error
 							`, chatId, userId).Scan(&check)
 
 	if err == sql.ErrNoRows {
-		return false, nil
+		return false, nil // utente non partecipe
 	} else if err != nil {
-		return false, err
+		return false, err // errore
 	}
-	return true, nil
+	return true, nil // utente partecipe
 }

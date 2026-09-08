@@ -63,7 +63,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		http.Error(w, "Invalid text pattern", http.StatusBadRequest)
 		return
 	}
-	
+
 	idMessage, err := generateId()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -108,4 +108,3 @@ type GroupPhotoRequest struct {
 type AddToGroupRequest struct {
 	UserId string `json:"userId"`
 }
-

@@ -8,8 +8,8 @@ services:
       dockerfile: Dockerfile.backend
     ports: # mappa la porta dell'host su quella del container backend
       - "3000:3000" 
-    volumes: # monta il database all'interno del container garantendo la presistenza dei dati
-      - ./cmd/webapi/wasatext.db:/app/wasatext.db
+    volumes: # monta il database all'interno del container garantendo la persistenza dei dati
+      - ./cmd/webapi/wasatext.db:/tmp/wasatext.db
     restart: unless-stopped # riavvia il container se si arresta in modo anomalo
 
   # ---- Frontend (Vue.js + Vite) ----

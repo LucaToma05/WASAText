@@ -86,10 +86,14 @@ func New(db *sql.DB) (AppDatabase, error) {
 	}
 
 	// foreign key activation
-	_, errPragma := db.Exec(`PRAGMA foreign_keys = ON`)
+	_, errPragma := db.Exec(`PRAGMA foreign_keys = ON;`)
 	if errPragma != nil {
 		return nil, fmt.Errorf("foreign key activation error: %w", errPragma)
 	}
+
+	// Busy timeout for concurrent access and journal mode DELETE for direct file persistence
+	_, _ = db.Exec(`PRAGMA busy_timeout = 5000;`)
+	_, _ = db.Exec(`PRAGMA journal_mode = DELETE;`)
 
 	// users table creation
 	var users string
@@ -105,7 +109,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
-	//chats table creation
+	// chats table creation
 	var chats string
 	errChats := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='chats';`).Scan(&chats)
 	if errors.Is(errChats, sql.ErrNoRows) {
@@ -137,7 +141,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
-	//messages table creation
+	// messages table creation
 	var messages string
 	errMessages := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='messages';`).Scan(&messages)
 	if errors.Is(errMessages, sql.ErrNoRows) {
@@ -158,7 +162,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
-	//comments table creation
+	// comments table creation
 	var comments string
 	errComments := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='comments';`).Scan(&comments)
 	if errors.Is(errComments, sql.ErrNoRows) {
@@ -175,7 +179,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
-	//message_reads table creation
+	// message_reads table creation
 	var message_reads string
 	errReads := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='message_reads';`).Scan(&message_reads)
 	if errors.Is(errReads, sql.ErrNoRows) {

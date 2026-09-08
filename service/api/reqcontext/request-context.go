@@ -19,6 +19,6 @@ type RequestContext struct {
 	// Logger is a custom field logger for the request
 	Logger logrus.FieldLogger
 
-	//The user ID extracted from the Authorization header
+	// The user ID extracted from the Authorization header
 	UserId string
 }

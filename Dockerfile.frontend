@@ -4,6 +4,9 @@ FROM node:lts
 # Imposta la working directory
 WORKDIR /app
 
+# Imposta HOME su /tmp per evitare problemi di permessi con utenti non-root
+ENV HOME=/tmp
+
 # Copia i file di configurazione e le dipendenze
 COPY webui/package.json webui/yarn.lock webui/.yarnrc.yml ./
 COPY webui/.yarn ./.yarn
@@ -14,8 +17,14 @@ RUN yarn install --immutable
 # Copia il resto del codice sorgente del frontend
 COPY webui/ .
 
+# Compila l'applicazione per la produzione durante la build dell'immagine
+RUN yarn run build-prod
+
+# Rende /app accessibile a qualsiasi utente (es. utente non-root dei test del professore)
+RUN chmod -R 777 /app
+
 # Espone la porta 4173
 EXPOSE 4173
 
-# Builda l'app e avvia il server vite preview
-CMD yarn build-dev && yarn preview --host 0.0.0.0
+# Avvia il server vite preview
+CMD ["yarn", "run", "preview", "--host", "0.0.0.0"]

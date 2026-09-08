@@ -5,6 +5,10 @@ info:
     Messaging platform that supports individual and group chats, accessible via PC.
   version: 1.0.0
 
+servers:
+  - url: /v1
+    description: WASAText API server
+
 components:
   schemas:
     User:
@@ -32,7 +36,8 @@ components:
         url:
           type: string
           description: URL of the photo
-          format: uri
+          format: url
+          pattern: '^(?=.*\S).+$'
           minLength: 1
           maxLength: 1000
           example: "https://foto.com/foto.png"
@@ -81,6 +86,7 @@ components:
           maxLength: 100
           description: Message sending time
           format: date-time
+          pattern: '^(?=.*\S).+$'
 
         
     Message:
@@ -106,6 +112,7 @@ components:
           maxLength: 100
           description: Message sending time
           format: date-time
+          pattern: '^(?=.*\S).+$'
         comments:
           type: array
           description: List of reactions to the message
@@ -120,7 +127,7 @@ components:
             - 1
             - 2
         forwarded:
-          type: bool
+          type: boolean
           description: Define is the message is forwarder (true = forwarder, false = no)
       required:
         - text
@@ -133,7 +140,7 @@ components:
         id: 
           $ref: '#/components/schemas/GeneralId'
         sender:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/GeneralId'
         emoji:
           type: string
           description: Emoji used to react to the message
@@ -154,6 +161,7 @@ components:
           type: array
           description: List of messages in reverse chronological order
           minItems: 0
+          maxItems: 1000
           items:
             $ref: '#/components/schemas/Message'
         
@@ -183,7 +191,12 @@ components:
           items:
             $ref: '#/components/schemas/User'
         messages:
-          $ref: '#/components/schemas/Messages'
+          type: array
+          description: List of messages in the chat
+          minItems: 0
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/Message'
   
     Error:
       description: Response subject for error codes
@@ -309,34 +322,41 @@ paths:
         content:
           application/json:
             schema:
-                type: object
-                properties:
-                  name:
-                    description: User nickname
-                    type: string
-                    example: Maria
-                    pattern: '^[A-Za-z0-9]+$'
-                    minLength: 3
-                    maxLength: 16
+              description: Login request body
+              type: object
+              properties:
+                name:
+                  description: User nickname
+                  type: string
+                  example: Maria
+                  pattern: '^[A-Za-z0-9]+$'
+                  minLength: 3
+                  maxLength: 16
       responses:
         "200":
           description: The user has logged in
           content:
             application/json:
               schema:
+                description: User identifier response
                 type: object
                 properties:
                   userId:
                     $ref: '#/components/schemas/GeneralId'
+              example:
+                userId: "avfd457ud3"
         "201":
           description: The user has been created and has logged in.
           content:
             application/json:
               schema:
+                description: Created user identifier response
                 type: object
                 properties:
                   userId:
                     $ref: '#/components/schemas/GeneralId'
+              example:
+                userId: "avfd457ud3"
         "400":
           $ref: '#/components/responses/BadRequest'
         "500":
@@ -356,6 +376,7 @@ paths:
         content:
           application/json:
             schema:
+              description: New username request body
               type: object
               properties:
                 name:
@@ -364,13 +385,14 @@ paths:
                   minLength: 3
                   maxLength: 25
                   pattern: '^[A-Za-z0-9]+$'
-                  example: "New username"
+                  example: "NewUsername"
       responses:
         "200":
           description: Update successful and nickname returned
           content:
             application/json:
               schema:
+                description: Updated username response body
                 type: object
                 properties:
                   username:
@@ -379,7 +401,9 @@ paths:
                     minLength: 3
                     maxLength: 25
                     pattern: '^[A-Za-z0-9]+$'
-                    example: "New username"
+                    example: "NewUsername"
+              example:
+                username: "NewUsername"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -414,6 +438,8 @@ paths:
             application/json:
               schema: 
                 $ref: '#/components/schemas/Photo'
+              example:
+                url: "https://foto.com/foto.png"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -438,6 +464,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatList'
+              example:
+                chats:
+                  - id: "avfd457ud3"
+                    name: "Luca"
+                    photo:
+                      url: "https://foto.com/foto.png"
+                    lastMessage:
+                      id: "avfd457ud3"
+                      sender: "avfd457ud3"
+                      chatId: "avfd457ud3"
+                      text: "ciao"
+                      instant: "2026-09-08T22:00:00Z"
+                      state: 1
+                      forwarded: false
+                    lastMessageInstant: "2026-09-08T22:00:00Z"
         "401":
           $ref: '#/components/responses/UnauthorizedError'
         "500":
@@ -484,6 +525,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chat'
+              example:
+                id: "avfd457ud3"
+                isGroup: false
+                name: "Luca"
+                photo:
+                  url: "https://foto.com/foto.png"
+                participants:
+                  - userId: "avfd457ud3"
+                    name: "Luca"
+                messages: []
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -510,6 +561,15 @@ paths:
             application/json:
               schema: 
                 $ref: '#/components/schemas/Messages'
+              example:
+                messages:
+                  - id: "avfd457ud3"
+                    sender: "avfd457ud3"
+                    chatId: "avfd457ud3"
+                    text: "ciao"
+                    instant: "2026-09-08T22:00:00Z"
+                    state: 1
+                    forwarded: false
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -552,6 +612,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+              example:
+                id: "avfd457ud3"
+                sender: "avfd457ud3"
+                chatId: "avfd457ud3"
+                text: "ciao"
+                instant: "2026-09-08T22:00:00Z"
+                state: 1
+                forwarded: false
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -611,6 +679,7 @@ paths:
         content:
           application/json:
             schema:
+              description: Forward message request body
               type: object
               properties:
                 userId:
@@ -624,6 +693,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+              example:
+                id: "avfd457ud3"
+                sender: "avfd457ud3"
+                chatId: "avfd457ud3"
+                text: "ciao"
+                instant: "2026-09-08T22:00:00Z"
+                state: 1
+                forwarded: true
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -674,6 +751,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Comment'
+              example:
+                id: "avfd457ud3"
+                sender: "avfd457ud3"
+                emoji: "👍"
+                messageId: "avfd457ud3"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -732,6 +814,7 @@ paths:
         content:
           application/json:
             schema:
+              description: Update group name request body
               type: object
               properties:
                 name:
@@ -747,15 +830,18 @@ paths:
           content:
             application/json:
               schema:
+                description: Updated group name response body
                 type: object
-              properties:
-                name:
-                  description: New group name
-                  type: string
-                  minLength: 3
-                  maxLength: 25
-                  pattern: '^(?=.*\S).+$'
-                  example: "New group name"
+                properties:
+                  name:
+                    description: New group name
+                    type: string
+                    minLength: 3
+                    maxLength: 25
+                    pattern: '^(?=.*\S).+$'
+                    example: "New group name"
+              example:
+                name: "New group name"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -791,6 +877,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Photo'
+              example:
+                url: "https://foto.com/foto.png"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -818,6 +906,7 @@ paths:
         content:
           application/json:
             schema:
+              description: Add to group request body
               type: object
               properties:
                 userId:

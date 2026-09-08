@@ -68,24 +68,20 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	// Distinguish between single chat and group chat
-	isGroup := false
-	if req.Type != nil && *req.Type {
-		isGroup = true
-	} else if req.IsGroup != nil && *req.IsGroup {
-		isGroup = true
-	} else if req.GroupName != "" {
-		isGroup = true
-	} else if len(rawParticipants) > 1 {
-		isGroup = true
-	}
+	isGroup := (req.Type != nil && *req.Type) ||
+		(req.IsGroup != nil && *req.IsGroup) ||
+		req.GroupName != "" ||
+		len(rawParticipants) > 1
 
 	if !isGroup {
 		// --- LOGICA CHAT SINGOLA 1-A-1 ---
-		targetUser := req.Name
-		if targetUser == "" && req.TargetUsername != "" {
+		var targetUser string
+		switch {
+		case req.Name != "":
+			targetUser = req.Name
+		case req.TargetUsername != "":
 			targetUser = req.TargetUsername
-		}
-		if targetUser == "" && len(rawParticipants) == 1 {
+		case len(rawParticipants) == 1:
 			targetUser = rawParticipants[0]
 		}
 
@@ -158,8 +154,10 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 
 	} else {
 		// --- LOGICA CHAT DI GRUPPO ---
-		groupName := req.Name
-		if groupName == "" && req.GroupName != "" {
+		var groupName string
+		if req.Name != "" {
+			groupName = req.Name
+		} else if req.GroupName != "" {
 			groupName = req.GroupName
 		}
 

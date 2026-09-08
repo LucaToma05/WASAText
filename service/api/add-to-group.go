@@ -30,13 +30,13 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	//Check id length (allow 3 to 25 to support both username and userId)
+	// Check id length (allow 3 to 25 to support both username and userId)
 	if len(req.UserId) < 3 || len(req.UserId) > 25 {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	//Check id pattern
+	// Check id pattern
 	match, _ := regexp.MatchString("^.*?$", req.UserId)
 	if !match {
 		http.Error(w, "Invalid text pattern", http.StatusBadRequest)
@@ -64,7 +64,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	// Resolve target user: req.UserId can be either a username (e.g. "bob") or a userId UUID
-	targetUserId := req.UserId
+	var targetUserId string
 	uId, err := rt.db.GetIdUserByUsername(req.UserId)
 	if err == nil && uId != "" {
 		targetUserId = uId

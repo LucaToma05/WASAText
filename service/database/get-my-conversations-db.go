@@ -7,22 +7,28 @@ func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, err
 	rows, err := db.c.Query(`
         SELECT
 			c.id,
+			-- Se non è un gruppo, prende il nome dell'altro utente
 			CASE 
 				WHEN c.isGroup = 0 THEN MAX(u2.name)
 				ELSE c.name
 			END AS name,
 
+			-- Se non è un gruppo, prende la foto dell'altro utente
 			CASE
 				WHEN c.isGroup = 0 THEN MAX(u2.photo)
 				ELSE c.photo
 			END AS photo,
 
+			-- Se l'ultimo messaggio è stato eliminato, mostra 'Questo messaggio è stato eliminato'
 			CASE
 				WHEN COALESCE(lm.deleted, 0) = 1 THEN 'Questo messaggio è stato eliminato'
 				ELSE IFNULL(lm.text, '')
 			END AS lastMessage,
+			-- Data e ora dell'ultimo messaggio
 			IFNULL(strftime('%Y-%m-%dT%H:%M:%SZ', lm.instant), '') AS lastMessageTime,
+			-- Indica se la conversazione è un gruppo
 			c.isGroup,
+			-- Indica se l'utente ha messaggi non letti
 			CASE 
 				WHEN lm.messageId IS NOT NULL 
 				     AND lm.userId != ? 
@@ -33,6 +39,7 @@ func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, err
 				THEN 1
 				ELSE 0
 			END AS hasUnread,
+			-- Numero di messaggi non letti
 			IFNULL((
 				SELECT COUNT(*)
 				FROM messages m2
@@ -43,6 +50,7 @@ func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, err
 				      WHERE mr2.messageId = m2.id AND mr2.userId = ?
 				  )
 			), 0) AS unreadCount,
+			-- ID dell'autore dell'ultimo messaggio
 			IFNULL(lm.userId, '') AS lastMessageUserId
 		FROM chats c
 		JOIN chat_members cm ON cm.chatId = c.id AND cm.userId = ?
@@ -67,6 +75,7 @@ func (db *appdbimpl) GetMyConversations(id string) ([]structure.ChatPreview, err
 
 	var chats []structure.ChatPreview
 
+	// scan dei campi
 	for rows.Next() {
 		var chat structure.ChatPreview
 		var hasUnreadInt int

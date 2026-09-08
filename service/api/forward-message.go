@@ -72,19 +72,21 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	messageId, err = generateId()
+	newMessageId, err := generateId()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	targetChatId := chatId
+	var targetChatId string
 	if req.UserID != "" {
 		targetChatId = req.UserID
+	} else {
+		targetChatId = chatId
 	}
 
 	newMessage := structure.Message{
-		ID:        messageId,
+		ID:        newMessageId,
 		Text:      message,
 		Forwarded: true,
 		Instant:   time.Now(),

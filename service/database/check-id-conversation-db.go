@@ -5,16 +5,16 @@ import (
 	"errors"
 )
 
-// If the user is not found, return id ""
+// Verifica se l'id della chat esiste
 func (db *appdbimpl) CheckIdConversation(id string) (bool, error) {
 	var flag bool
 	err := db.c.QueryRow("SELECT 1 FROM chats WHERE id=?", id).Scan(&flag)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return false, nil // id inesistente
 		}
-		return false, err
+		return false, err // errore
 	}
-	return true, nil
+	return true, nil // id esistente
 }

@@ -1,6 +1,5 @@
 package database
 
-//import "github.com/LucaToma05/WASAText/service/api"
 import structure "github.com/LucaToma05/WASAText/service/structure"
 
 func (db *appdbimpl) CreateChat(infoChat structure.InfoChat, id string, participants []structure.UserId) error {
