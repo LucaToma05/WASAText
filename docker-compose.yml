@@ -12,14 +12,14 @@ services:
       - ./cmd/webapi/wasatext.db:/tmp/wasatext.db
     restart: unless-stopped # riavvia il container se si arresta in modo anomalo
 
-  # ---- Frontend (Vue.js + Vite) ----
+  # ---- Frontend (Vue.js + Nginx) ----
   frontend:
     container_name: wasatext-frontend
     build: # builda l'immagine prendendo come base Dockerfile.frontend
       context: .
       dockerfile: Dockerfile.frontend
-    ports: # mappa la porta dell'host su quella del container frontend
-      - "4173:4173"
+    ports: # mappa la porta 4173 dell'host sulla porta 80 di Nginx nel container
+      - "4173:80"
     depends_on: # attende che il container backend sia avviato
       - backend
     restart: unless-stopped # riavvia il container se si arresta in modo anomalo

@@ -43,6 +43,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 
 	conversation, err := rt.db.GetConversation(chatId, userId)
 	if err != nil {
+		ctx.Logger.WithError(err).Error("error getting conversation")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"strings"
 	"time"
 
 	structure "github.com/LucaToma05/WASAText/service/structure"
@@ -84,6 +85,7 @@ func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]str
 			&senderName,
 			&deleted,
 		); err != nil {
+			_ = rows.Close()
 			return nil, err
 		}
 		// Se il messaggio è stato eliminato (soft-delete), sovrascriviamo il testo
@@ -99,22 +101,35 @@ func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]str
 			message.State = 1
 		}
 
-		message.Instant, err = time.Parse(time.RFC3339, instantStr)
-		if err != nil {
-			return nil, err
+		// Parsing flessibile del timestamp per supportare sia 'T' che lo spazio di SQLite
+		instantFormatted := strings.Replace(instantStr, " ", "T", 1)
+		t, errT := time.Parse(time.RFC3339Nano, instantFormatted)
+		if errT != nil {
+			t, errT = time.Parse(time.RFC3339, instantFormatted)
+			if errT != nil {
+				t, errT = time.Parse("2006-01-02 15:04:05", instantStr)
+				if errT != nil {
+					t, _ = time.Parse("2006-01-02T15:04:05", instantFormatted)
+				}
+			}
 		}
-
-		if message.Comments, err = db.getComment(message.ID); err != nil {
-			return nil, err
-		}
-
-		message.ReadBy = db.getMessageReaders(message.ID)
+		message.Instant = t
 
 		messages = append(messages, message)
 	}
 
 	if err = rows.Err(); err != nil {
+		_ = rows.Close()
 		return nil, err
+	}
+	_ = rows.Close() // FONDAMENTALE: chiude la connessione prima di eseguire subquery per evitare deadlock con SetMaxOpenConns(1)
+
+	// Recupera commenti e lettori dopo aver rilasciato la connessione
+	for i := range messages {
+		if comments, errC := db.getComment(messages[i].ID); errC == nil {
+			messages[i].Comments = comments
+		}
+		messages[i].ReadBy = db.getMessageReaders(messages[i].ID)
 	}
 
 	return messages, nil

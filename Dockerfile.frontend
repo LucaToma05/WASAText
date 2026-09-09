@@ -1,10 +1,10 @@
-# Imposta Node.js come immagine base
-FROM node:lts
+# ---- Stage 1: Build dell'applicazione Vue.js con Node ----
+FROM node:lts AS builder
 
-# Imposta la working directory
+# Imposta la cartella di lavoro
 WORKDIR /app
 
-# Imposta HOME su /tmp per evitare problemi di permessi con utenti non-root
+# Imposta HOME su /tmp per evitare problemi di permessi con la cache di Yarn
 ENV HOME=/tmp
 
 # Copia i file di configurazione e le dipendenze
@@ -17,14 +17,14 @@ RUN yarn install --immutable
 # Copia il resto del codice sorgente del frontend
 COPY webui/ .
 
-# Compila l'applicazione per la produzione durante la build dell'immagine
+# Compila l'applicazione per la produzione
 RUN yarn run build-prod
 
-# Rende /app accessibile a qualsiasi utente (es. utente non-root dei test del professore)
-RUN chmod -R 777 /app
+# ---- Stage 2: Web server Nginx per servire i file statici ----
+FROM nginx:stable
 
-# Espone la porta 4173
-EXPOSE 4173
+# Copia i file compilati dallo stage di build nella directory pubblica di Nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Avvia il server vite preview
-CMD ["yarn", "run", "preview", "--host", "0.0.0.0"]
+# Espone la porta 80 (standard HTTP per i web server)
+EXPOSE 80
