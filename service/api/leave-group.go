@@ -20,6 +20,18 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
+	// Check if the chat exists
+	ok, err := rt.db.CheckIdConversation(chatId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Chat not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if the chat is a group
 	flag, err := rt.db.IsGroup(chatId)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -30,7 +42,8 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	ok, err := rt.db.CheckUserInGroup(chatId, userId)
+	// Check if the user is in the group
+	ok, err = rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

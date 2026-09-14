@@ -1,6 +1,7 @@
 <template>
+  <!-- Se clicchi chiude il pannello -->
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-card modal-group-card">
+    <div class="modal-group-card">
       <h2 class="modal-title">Nuovo Gruppo</h2>
 
       <!-- Nome Gruppo -->
@@ -10,7 +11,7 @@
           v-model="groupName"
           type="text"
           placeholder="Nome del gruppo (3-25 caratteri)"
-          class="modal-input modal-input-compact"
+          class="modal-input"
           maxlength="25"
           autofocus
         />
@@ -20,6 +21,7 @@
       <div class="modal-form-group">
         <label class="modal-label">Foto del gruppo (opzionale)</label>
         <div class="photo-input-section">
+          <!-- Preview della foto -->
           <div v-if="groupPhoto" class="photo-preview-box">
             <img :src="groupPhoto" class="group-photo-preview" alt="Anteprima foto" />
             <button type="button" class="btn-clear-photo" @click="groupPhoto = ''" title="Rimuovi foto">✕</button>
@@ -29,7 +31,7 @@
               v-model="groupPhoto"
               type="url"
               placeholder="Incolla il link (URL) dell'immagine..."
-              class="modal-input modal-input-compact"
+              class="modal-input"
             />
           </div>
         </div>
@@ -43,7 +45,7 @@
             v-model="userToAdd"
             type="text"
             placeholder="Username partecipante..."
-            class="modal-input modal-input-compact"
+            class="modal-input"
             @keyup.enter.prevent="addParticipant"
           />
           <button type="button" class="btn-add-chip" @click="addParticipant">Aggiungi</button>
@@ -68,8 +70,10 @@
         </div>
       </div>
 
+      <!-- Messaggio di errore -->
       <p v-if="groupErrorMsg" class="error-msg">{{ groupErrorMsg }}</p>
 
+      <!-- Pulsanti finali -->
       <div class="modal-buttons">
         <button class="btn-primary" :disabled="isCreatingGroup" @click="createGroup">
           {{ isCreatingGroup ? 'Creazione in corso...' : 'Crea gruppo' }}
@@ -96,30 +100,38 @@ export default {
   },
   methods: {
     addParticipant() {
+      // Controlli username
       const u = this.userToAdd.trim();
       if (!u) return;
       if (u.length < 3 || u.length > 16) {
         this.groupErrorMsg = "Lo username deve essere tra 3 e 16 caratteri";
         return;
       }
-      const myId = localStorage.getItem("userId") || localStorage.getItem("token");
+      // Verifico che non venga inserito il mio username
+      const myId = localStorage.getItem("token");
       const myUsername = localStorage.getItem("username");
       if (u === myId || (myUsername && u.toLowerCase() === myUsername.toLowerCase())) {
         this.groupErrorMsg = "Tu sei già incluso automaticamente nel gruppo";
         return;
       }
+      // Verifico che non venga inserito un username duplicato
       if (this.selectedParticipants.includes(u)) {
         this.groupErrorMsg = `L'utente "${u}" è già stato aggiunto`;
         return;
       }
+      // Aggiungo l'utente alla lista
       this.selectedParticipants.push(u);
+      // Resetto l'input
       this.userToAdd = "";
       this.groupErrorMsg = "";
     },
     removeParticipant(username) {
+      // Crea un array senza l'utente da rimuovere
       this.selectedParticipants = this.selectedParticipants.filter(u => u !== username);
     },
+
     async createGroup() {
+      // Controllo nome del gruppo
       const name = this.groupName.trim();
       if (!name) {
         this.groupErrorMsg = "Inserisci il nome del gruppo";
@@ -137,11 +149,11 @@ export default {
         const response = await this.$axios.post(
           "/chats",
           {
-            type: true,
             isGroup: true,
             name: name,
             photo: this.groupPhoto.trim(),
-            participants: this.selectedParticipants
+            // Trasforma l'array di stringhe in un array di oggetti
+            participants: this.selectedParticipants.map(u => ({ username: u }))
           },
           {
             headers: {
@@ -150,7 +162,8 @@ export default {
           }
         );
 
-        const newChatId = response.data.chatId || response.data.id;
+        // Emissione eventi
+        const newChatId = response.data.chatId;
         this.$emit("created", newChatId);
         this.$emit("close");
       } catch (err) {
@@ -166,11 +179,8 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.45);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -185,7 +195,7 @@ export default {
   max-width: 95%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -194,7 +204,6 @@ export default {
 
 .modal-title {
   font-size: 28px;
-  font-weight: bold;
   color: #222;
   text-align: center;
   margin: 0;
@@ -215,6 +224,9 @@ export default {
 
 .modal-input {
   width: 100%;
+  height: 46px;
+  font-size: 15px;
+  padding: 8px 14px;
   box-sizing: border-box;
   border-radius: 12px;
   border: 2px solid #555;
@@ -226,13 +238,7 @@ export default {
   border-color: #000;
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 10px rgba(0,0,0,0.15);
-}
-
-.modal-input-compact {
-  height: 46px;
-  font-size: 15px;
-  padding: 8px 14px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
 
 .photo-input-section {
@@ -249,8 +255,8 @@ export default {
 }
 
 .group-photo-preview {
-  width: 50px;
-  height: 50px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #222;
@@ -372,22 +378,25 @@ export default {
   margin-top: 6px;
 }
 
-.btn-primary {
+.modal-buttons button {
   padding: 12px 18px;
-  background-color: #222;
-  color: white;
   border: none;
   border-radius: 14px;
   font-size: 16px;
-  font-weight: bold;
   cursor: pointer;
   transition: 0.25s ease;
+}
+
+.btn-primary {
+  background-color: #222;
+  color: white;
+  font-weight: bold;
 }
 
 .btn-primary:hover:not(:disabled) {
   background-color: #444;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
@@ -396,16 +405,23 @@ export default {
 }
 
 .btn-secondary {
-  padding: 12px 18px;
   background-color: #ccc;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: 0.25s ease;
+  color: #222;
 }
 
 .btn-secondary:hover {
   background-color: #bbb;
+}
+
+@media (max-width: 600px) {
+  .modal-group-card {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 </style>

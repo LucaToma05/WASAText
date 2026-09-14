@@ -1,6 +1,7 @@
 <template>
+  <!-- Se cliccato chiude il pannello -->
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-card modal-forward-card">
+    <div class="modal-forward-card">
       <div class="modal-card-header">
         <h2 class="modal-title">Inoltra messaggio</h2>
         <button type="button" class="btn-close-modal" @click="$emit('close')">✕</button>
@@ -22,7 +23,7 @@
         v-model="searchQuery"
         type="text"
         placeholder="Cerca conversazione o gruppo a cui inoltrare..."
-        class="modal-input modal-input-compact"
+        class="modal-input"
       />
 
       <!-- Messaggi di errore o successo -->
@@ -35,8 +36,8 @@
           v-for="chat in forwardableChats" 
           :key="chat.chatId"
           class="forward-chat-row"
-          @click="forwardToChat(chat)"
         >
+          <!-- Foto e nome chat -->
           <img :src="chat.photo || '/default.png'" class="forward-chat-avatar" alt="Foto chat" />
           <div class="forward-chat-meta">
             <div class="forward-chat-title">{{ chat.name }}</div>
@@ -46,6 +47,7 @@
             type="button" 
             class="btn-action-small btn-primary-small"
             :disabled="isForwarding"
+            @click="forwardToChat(chat)"
           >
             {{ isForwarding && targetChatId === chat.chatId ? 'Invio...' : 'Inoltra' }}
           </button>
@@ -91,6 +93,7 @@ export default {
     };
   },
   computed: {
+    // Filtra le chat a cui inoltrare il messaggio
     forwardableChats() {
       const q = this.searchQuery.trim().toLowerCase();
       return this.chats.filter(c => {
@@ -99,19 +102,9 @@ export default {
         return isNotCurrent && matchesQuery;
       });
     },
-    parsedMessageText() {
-      if (!this.message || !this.message.text) return "";
-      const raw = this.message.text;
-      if (typeof raw === "string" && (raw.startsWith('{"replyTo"') || raw.startsWith('{"_reply"'))) {
-        try {
-          const parsed = JSON.parse(raw);
-          return parsed.text || "";
-        } catch (e) {}
-      }
-      return raw;
-    },
+    // Controlla se il messaggio è una foto
     isPhoto() {
-      const text = this.parsedMessageText;
+      const text = this.message?.text;
       if (!text || typeof text !== "string") return false;
       const t = text.trim();
       return (
@@ -119,11 +112,12 @@ export default {
         /^data:image\//i.test(t)
       );
     },
+    // Mostra una anteprima del testo del messaggio (tagliandola)
     displaySnippet() {
-      const text = this.parsedMessageText;
+      const text = this.message?.text;
       if (!text) return "";
       const cleaned = text.replace(/\s+/g, " ").trim();
-      return cleaned.length <= 140 ? cleaned : cleaned.slice(0, 140) + "...";
+      return cleaned.length <= 50 ? cleaned : cleaned.slice(0, 50) + "...";
     }
   },
   methods: {
@@ -137,7 +131,7 @@ export default {
       try {
         await this.$axios.post(
           `/chats/${this.currentChatId}/messages/${this.message.id}/forward`,
-          { userId: targetChat.chatId },
+          { chatId: targetChat.chatId },
           {
             headers: {
               Authorization: "Bearer " + localStorage.getItem("token")
@@ -147,12 +141,15 @@ export default {
 
         this.successMsg = `Messaggio inoltrato con successo a "${targetChat.name}"!`;
         this.$emit("forwarded", targetChat);
+
+        // Chiude il modale dopo 1000ms in modo da far leggere la conferma dell'inoltro del messaggio
         setTimeout(() => {
           this.$emit("close");
-        }, 800);
+        }, 1000);
       } catch (err) {
         this.errorMsg = err.response?.data || "Errore durante l'inoltro del messaggio";
       } finally {
+        // Resetta gli stati
         this.isForwarding = false;
         this.targetChatId = null;
       }
@@ -164,11 +161,8 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.45);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -182,7 +176,7 @@ export default {
   width: 480px;
   max-width: 95%;
   max-height: 85vh;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -197,7 +191,6 @@ export default {
 
 .modal-title {
   font-size: 24px;
-  font-weight: bold;
   color: #222;
   margin: 0;
 }
@@ -209,6 +202,7 @@ export default {
   cursor: pointer;
   color: #666;
   padding: 4px;
+  transition: color 0.15s ease;
 }
 
 .btn-close-modal:hover {
@@ -234,7 +228,12 @@ export default {
   word-break: break-word;
 }
 
-.modal-input-compact {
+.photo-indicator {
+  font-style: italic;
+  color: #555;
+}
+
+.modal-input {
   height: 44px;
   font-size: 14px;
   padding: 8px 14px;
@@ -243,12 +242,14 @@ export default {
   background-color: #f5f5f5;
   box-sizing: border-box;
   width: 100%;
+  transition: 0.25s ease;
 }
 
-.modal-input-compact:focus {
+.modal-input:focus {
   border-color: #000;
   background-color: #fff;
   outline: none;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
 
 .forward-chats-list {
@@ -268,8 +269,7 @@ export default {
   gap: 12px;
   padding: 8px 10px;
   border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color 0.15s ease;
 }
 
 .forward-chat-row:hover {
@@ -281,6 +281,7 @@ export default {
   height: 38px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .forward-chat-meta {
@@ -315,7 +316,7 @@ export default {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: 0.15s;
+  transition: 0.15s ease;
 }
 
 .btn-primary-small {
@@ -325,6 +326,11 @@ export default {
 
 .btn-primary-small:hover:not(:disabled) {
   background-color: #444;
+}
+
+.btn-primary-small:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .no-chats-found {
@@ -357,13 +363,22 @@ export default {
 .btn-secondary {
   padding: 10px 16px;
   background-color: #ccc;
+  color: #222;
   border: none;
   border-radius: 12px;
   font-size: 15px;
   cursor: pointer;
+  transition: 0.25s ease;
 }
 
 .btn-secondary:hover {
   background-color: #bbb;
+}
+
+@media (max-width: 600px) {
+  .modal-forward-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
 }
 </style>

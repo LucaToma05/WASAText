@@ -1,0 +1,9 @@
+# Ignora file non necessari nel contesto Docker per evitare problemi di cache e permessi
+**/node_modules
+webui/node_modules
+webui/dist
+dist
+.git
+.vscode
+cmd/webapi/wasatext.db
+webapi.exe

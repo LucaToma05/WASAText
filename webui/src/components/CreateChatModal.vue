@@ -1,4 +1,5 @@
 <template>
+  <!-- Se cliccato, chiude il pannello -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <h2 class="modal-title">Crea nuova chat</h2>
@@ -14,10 +15,12 @@
 
       <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
 
+      <!-- Bottone crea chat -->
       <div class="modal-buttons">
         <button class="btn-primary" :disabled="loading" @click="createChat">
           {{ loading ? 'Creazione...' : 'Crea chat' }}
         </button>
+        <!-- Bottone annulla -->
         <button class="btn-secondary" type="button" @click="$emit('close')">Annulla</button>
       </div>
     </div>
@@ -37,6 +40,7 @@ export default {
   },
   methods: {
     async createChat() {
+      // Controlla se lo username non è vuoto (o solo spazi)
       const target = this.username.trim();
       if (!target) {
         this.errorMsg = "Inserisci un username";
@@ -46,11 +50,12 @@ export default {
       this.loading = true;
       this.errorMsg = "";
 
+      // Chiama l'API per creare la chat
       try {
         const response = await this.$axios.post(
           "/chats",
           {
-            type: false,
+            isGroup: false,
             name: target
           },
           {
@@ -60,7 +65,8 @@ export default {
           }
         );
 
-        const newChatId = response.data.chatId || response.data.id;
+        // Emissione eventi
+        const newChatId = response.data.chatId;
         this.$emit("created", newChatId);
         this.$emit("close");
       } catch (err) {
@@ -76,11 +82,8 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.45);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -93,7 +96,7 @@ export default {
   border-radius: 22px;
   width: 90%;
   max-width: 420px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 25px;
@@ -102,9 +105,9 @@ export default {
 
 .modal-title {
   font-size: clamp(22px, 5vw, 32px);
-  font-weight: bold;
   color: #222;
   text-align: center;
+  margin: 0;
 }
 
 .modal-input {
@@ -123,7 +126,7 @@ export default {
   border-color: #000;
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
 
 .error-msg {
@@ -139,22 +142,25 @@ export default {
   gap: 12px;
 }
 
-.btn-primary {
+.modal-buttons button {
   padding: 12px 18px;
-  background-color: #222;
-  color: white;
   border: none;
   border-radius: 14px;
   font-size: 18px;
-  font-weight: bold;
   cursor: pointer;
   transition: 0.25s ease;
+}
+
+.btn-primary {
+  background-color: #222;
+  color: white;
+  font-weight: bold;
 }
 
 .btn-primary:hover:not(:disabled) {
   background-color: #444;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
@@ -163,13 +169,8 @@ export default {
 }
 
 .btn-secondary {
-  padding: 12px 18px;
   background-color: #ccc;
-  border: none;
-  border-radius: 14px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: 0.25s ease;
+  color: #222;
 }
 
 .btn-secondary:hover {
@@ -185,12 +186,6 @@ export default {
   .modal-buttons {
     flex-direction: column;
     gap: 10px;
-  }
-
-  .modal-buttons .btn-primary,
-  .modal-buttons .btn-secondary {
-    width: 100%;
-    text-align: center;
   }
 }
 </style>

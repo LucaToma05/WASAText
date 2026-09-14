@@ -52,12 +52,10 @@ type AppDatabase interface {
 	CheckIdConversation(id string) (bool, error)
 	CheckMessageInChat(chatId string, messageId string) (bool, error)
 	CheckCommentInMessage(commentId string, messageId string) (bool, error)
-	CheckUserInGroup(chatId string, userId string) (bool, error)
 	CheckChatExistsBetween(userA string, userB string) (bool, error)
 	GetConversation(chatId string, currentUserId string) ([]structure.Message, error)
 	GetMyInformation(userId string) (structure.User, error)
 	GetMessage(messageId string) (string, error)
-	getComment(messageId string) ([]structure.Comment, error)
 	CheckConversation(chatId string, userId string) (bool, error)
 	CommentMessage(comment structure.Comment) error
 	UncommentMessage(messageId string, commentId string, userId string) error
@@ -66,9 +64,9 @@ type AppDatabase interface {
 	SendMessage(message structure.Message) error
 	DeleteMessage(chatId string, messageId string, userId string) error
 	SetGroupName(name structure.GroupNameRequest, chatId string) error
-	SetGroupPhoto(groupPhoto structure.GroupPhotoRequest, chatId string) error
+	SetGroupPhoto(groupPhoto structure.Photo, chatId string) error
 
-	AddToGroup(req structure.AddToGroupRequest, chatId string) error
+	AddToGroup(req structure.UserId, chatId string) error
 	LeaveGroup(chatId string, userId string) error
 
 	Ping() error
@@ -149,11 +147,12 @@ func New(db *sql.DB) (AppDatabase, error) {
 						id TEXT PRIMARY KEY, 
 						text TEXT NOT NULL, 
 						instant TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-						state INTEGER NOT NULL, 
+						state INTEGER NOT NULL DEFAULT 1, 
 						forwarded BOOLEAN NOT NULL DEFAULT 0,
 						deleted INTEGER NOT NULL DEFAULT 0,
 						userId TEXT, 
 						chatId TEXT,
+						replyTo TEXT NOT NULL DEFAULT '',
 						FOREIGN KEY (userId) REFERENCES users(userId),
 						FOREIGN KEY (chatId) REFERENCES chats(id));`
 		_, errMessages = db.Exec(sqlStmt)
@@ -167,10 +166,10 @@ func New(db *sql.DB) (AppDatabase, error) {
 	errComments := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='comments';`).Scan(&comments)
 	if errors.Is(errComments, sql.ErrNoRows) {
 		sqlStmt := `CREATE TABLE comments (
-						id TEXT PRIMARY KEY, 
+						id TEXT NOT NULL PRIMARY KEY, 
 						emoji TEXT NOT NULL, 
-						userId TEXT, 
-						messageId TEXT,
+						userId TEXT NOT NULL, 
+						messageId TEXT NOT NULL,
 						FOREIGN KEY (userId) REFERENCES users(userId),
 						FOREIGN KEY (messageId) REFERENCES messages(id));`
 		_, errComments = db.Exec(sqlStmt)
@@ -186,7 +185,6 @@ func New(db *sql.DB) (AppDatabase, error) {
 		sqlStmt := `CREATE TABLE message_reads (
 						messageId TEXT NOT NULL,
 						userId TEXT NOT NULL,
-						readInstant TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 						PRIMARY KEY (messageId, userId),
 						FOREIGN KEY (messageId) REFERENCES messages(id),
 						FOREIGN KEY (userId) REFERENCES users(userId)

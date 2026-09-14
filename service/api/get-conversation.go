@@ -21,6 +21,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
+	// Check if the chat exists
 	ok, err := rt.db.CheckIdConversation(chatId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -31,6 +32,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
+	// Check if the user is in the chat
 	ok, err = rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

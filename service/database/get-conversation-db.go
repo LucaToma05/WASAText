@@ -1,17 +1,12 @@
 package database
 
 import (
-	"strings"
-	"time"
-
 	structure "github.com/LucaToma05/WASAText/service/structure"
 )
 
 func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]structure.Message, error) {
-
 	if currentUserId != "" {
-		// Registra nel database che currentUserId ha visualizzato tutti i messaggi della chat inviati da altri
-		// IGNORE serve per ignorare il comando se il messaggio risulta già letto
+		// Registra i messaggi letti in message_reads
 		_, _ = db.c.Exec(`
 			INSERT OR IGNORE INTO message_reads (messageId, userId)
 			SELECT id, ?
@@ -19,176 +14,131 @@ func (db *appdbimpl) GetConversation(chatId string, currentUserId string) ([]str
 			WHERE chatId = ? AND userId != ?;
 		`, currentUserId, chatId, currentUserId)
 
-		// Aggiorna lo stato dei messaggi a 2 (Letto) se e solo se TUTTI i destinatari della chat hanno visualizzato il messaggio.
+		// Aggiorna lo stato dei messaggi a 2 (Letto) se tutti gli altri partecipanti hanno letto (numero lettori = numero membri gruppo)
 		_, _ = db.c.Exec(`
 			UPDATE messages
 			SET state = 2
 			WHERE chatId = ?
 			  AND state != 2
 			  AND (
+			  -- Conta quante persone hanno letto il messaggio
 				  SELECT COUNT(*)
 				  FROM message_reads mr
-				  WHERE mr.messageId = messages.id
-				    AND mr.userId != messages.userId
+				  WHERE mr.messageId = messages.id AND mr.userId != messages.userId
 			  ) >= (
+			  -- Conta il numero di partecipanti al gruppo
 				  SELECT COUNT(*)
 				  FROM chat_members cm
-				  WHERE cm.chatId = messages.chatId
-				    AND cm.userId != messages.userId
-			  )
-			  AND (
-				  SELECT COUNT(*)
-				  FROM chat_members cm2
-				  WHERE cm2.chatId = messages.chatId
-				    AND cm2.userId != messages.userId
-			  ) > 0;
+				  WHERE cm.chatId = messages.chatId AND cm.userId != messages.userId
+			  );
 		`, chatId)
-
-		// Normalizza eventuali messaggi con state 0 a state 1 (Ricevuto/Consegnato)
-		_, _ = db.c.Exec(`UPDATE messages SET state = 1 WHERE chatId = ? AND state = 0;`, chatId)
 	}
 
+	// 1. Recupera tutti i messaggi della conversazione
 	rows, err := db.c.Query(`
-        SELECT messages.id,
-               messages.text,
-               messages.instant,
-               messages.state,
-               messages.userId,
-               messages.forwarded,
-               IFNULL(users.name, messages.userId) AS senderName,
-               COALESCE(messages.deleted, 0) AS deleted
-        FROM messages
-        LEFT JOIN users ON users.userId = messages.userId
-        WHERE messages.chatId = ?
-        ORDER BY messages.instant ASC;
-    `, chatId)
+		SELECT messages.id,
+		       messages.text,
+		       messages.instant,
+		       messages.state,
+		       messages.userId,
+		       messages.forwarded,
+		       messages.replyTo,
+		       users.name AS senderName,
+		       messages.deleted
+		FROM messages
+		JOIN users ON users.userId = messages.userId
+		WHERE messages.chatId = ?
+		ORDER BY messages.instant ASC;
+	`, chatId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var messages []structure.Message
+	// Inizializza slice vuota
+	messages := make([]structure.Message, 0)
 
 	for rows.Next() {
-		var message structure.Message
-		var instantStr string
-		var senderName string
+		var msg structure.Message
 		var deleted int
 
+		// Mappa ogni colonna della query nella struttura Message
 		if err = rows.Scan(
-			&message.ID,
-			&message.Text,
-			&instantStr,
-			&message.State,
-			&message.IdSender,
-			&message.Forwarded,
-			&senderName,
+			&msg.ID,
+			&msg.Text,
+			&msg.Instant,
+			&msg.State,
+			&msg.IdSender,
+			&msg.Forwarded,
+			&msg.ReplyTo,
+			&msg.SenderUsername,
 			&deleted,
 		); err != nil {
-			_ = rows.Close()
 			return nil, err
 		}
-		// Se il messaggio è stato eliminato (soft-delete), sovrascriviamo il testo
-		if deleted == 1 {
-			message.Text = "Questo messaggio è stato eliminato"
+
+		msg.ChatId = chatId
+		msg.Reply = (msg.ReplyTo != "")
+		msg.Deleted = (deleted == 1)
+		if msg.Deleted {
+			msg.Text = "Questo messaggio è stato eliminato"
 		}
+		msg.Comments = make([]structure.Comment, 0)
 
-		message.SenderUsername = senderName
-		message.SenderName = senderName
-
-		// Se state è ancora 0, normalizza a 1 (Ricevuto/Consegnato)
-		if message.State < 1 {
-			message.State = 1
-		}
-
-		// Parsing flessibile del timestamp per supportare sia 'T' che lo spazio di SQLite
-		instantFormatted := strings.Replace(instantStr, " ", "T", 1)
-		t, errT := time.Parse(time.RFC3339Nano, instantFormatted)
-		if errT != nil {
-			t, errT = time.Parse(time.RFC3339, instantFormatted)
-			if errT != nil {
-				t, errT = time.Parse("2006-01-02 15:04:05", instantStr)
-				if errT != nil {
-					t, _ = time.Parse("2006-01-02T15:04:05", instantFormatted)
-				}
-			}
-		}
-		message.Instant = t
-
-		messages = append(messages, message)
+		messages = append(messages, msg)
 	}
 
 	if err = rows.Err(); err != nil {
-		_ = rows.Close()
 		return nil, err
 	}
-	_ = rows.Close() // FONDAMENTALE: chiude la connessione prima di eseguire subquery per evitare deadlock con SetMaxOpenConns(1)
+	rows.Close()
 
-	// Recupera commenti e lettori dopo aver rilasciato la connessione
-	for i := range messages {
-		if comments, errC := db.getComment(messages[i].ID); errC == nil {
-			messages[i].Comments = comments
+	// Se non ci sono messaggi, esce subito
+	if len(messages) == 0 {
+		return messages, nil
+	}
+
+	// 2. Recupera tutti i commenti della chat in una mappa map[messageId][]Comment
+	commentsMap, err := db.getChatComments(chatId)
+	if err == nil {
+		// Inserisce i commenti nei rispettivi messaggi
+		for i := range messages {
+			if comms, ok := commentsMap[messages[i].ID]; ok {
+				messages[i].Comments = comms
+			}
 		}
-		messages[i].ReadBy = db.getMessageReaders(messages[i].ID)
 	}
 
 	return messages, nil
 }
 
-func (db *appdbimpl) getMessageReaders(messageId string) []string {
+// getChatComments recupera tutti i commenti per i messaggi della chat
+func (db *appdbimpl) getChatComments(chatId string) (map[string][]structure.Comment, error) {
 	rows, err := db.c.Query(`
-		SELECT COALESCE(users.name, message_reads.userId)
-		FROM message_reads
-		LEFT JOIN users ON users.userId = message_reads.userId
-		WHERE message_reads.messageId = ?;
-	`, messageId)
-	if err != nil {
-		return []string{}
-	}
-	defer rows.Close()
-
-	var readers []string
-	for rows.Next() {
-		var reader string
-		if err := rows.Scan(&reader); err == nil && reader != "" {
-			readers = append(readers, reader)
-		}
-	}
-	if err = rows.Err(); err != nil {
-		return nil
-	}
-	return readers
-}
-
-func (db *appdbimpl) getComment(messageId string) ([]structure.Comment, error) {
-	rows, err := db.c.Query(`	SELECT 
-									COALESCE(comments.id, ''),
-									COALESCE(comments.emoji, ''),
-									COALESCE(comments.userId, ''),
-									COALESCE(users.name, comments.userId)
-								FROM comments
-								LEFT JOIN users ON users.userId = comments.userId
-								WHERE comments.messageId = ?
-								;`, messageId)
+		SELECT comments.id,
+		       comments.emoji,
+		       comments.userId,
+		       users.name,
+		       comments.messageId
+		FROM comments
+		JOIN users ON users.userId = comments.userId
+		JOIN messages ON messages.id = comments.messageId
+		WHERE messages.chatId = ?;
+	`, chatId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var comments []structure.Comment
-
+	res := make(map[string][]structure.Comment)
+	// Itera sulle righe del database
 	for rows.Next() {
-		var comment structure.Comment
-		var senderName string
-		if err = rows.Scan(&comment.ID, &comment.Emoji, &comment.IdSender, &senderName); err != nil {
-			return nil, err
+		var c structure.Comment
+
+		if err := rows.Scan(&c.ID, &c.Emoji, &c.IdSender, &c.SenderUsername, &c.MessageId); err == nil {
+			// Aggiunge il commento alla mappa
+			res[c.MessageId] = append(res[c.MessageId], c)
 		}
-		comment.SenderUsername = senderName
-		comment.SenderName = senderName
-		comments = append(comments, comment)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-	return comments, nil
+	return res, rows.Err()
 }

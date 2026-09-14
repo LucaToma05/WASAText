@@ -42,6 +42,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
+	// Check if chat is a group
 	flag, err := rt.db.IsGroup(chatId)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -52,7 +53,8 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	ok, err := rt.db.CheckUserInGroup(chatId, userId)
+	// Check if user is in the group
+	ok, err := rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

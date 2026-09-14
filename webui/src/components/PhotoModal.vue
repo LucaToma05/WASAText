@@ -1,6 +1,7 @@
 <template>
+  <!-- Se cliccato rimuove il pannello -->
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-card modal-photo-card">
+    <div class="modal-photo-card">
       <div class="modal-card-header">
         <h2 class="modal-title">Invia foto</h2>
         <button type="button" class="btn-close-modal" @click="$emit('close')" title="Chiudi">✕</button>
@@ -8,7 +9,7 @@
 
       <p class="modal-photo-desc">Incolla il link (URL) dell'immagine da inviare nella conversazione:</p>
 
-      <!-- Anteprima real-time della foto se inserita -->
+      <!-- Anteprima della foto se inserita -->
       <div v-if="photoUrl.trim()" class="modal-photo-preview-wrap">
         <img 
           :src="photoUrl.trim()" 
@@ -18,17 +19,19 @@
         />
       </div>
 
+      <!-- Inserisci URL -->
       <input 
         v-model="photoUrl"
         type="url"
         placeholder="https://esempio.com/foto.jpg"
         class="modal-input"
-        autofocus
         @keyup.enter="handleSend"
       />
 
+      <!-- Eventuali errori -->
       <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
 
+      <!-- Bottoni -->
       <div class="modal-buttons">
         <button 
           type="button" 
@@ -61,9 +64,11 @@ export default {
     };
   },
   methods: {
+    // Mostra messaggio errore anteprima
     onPreviewError() {
       this.errorMsg = "Impossibile caricare l'anteprima dell'immagine. Verifica l'URL.";
     },
+    // Gestisce invio foto
     handleSend() {
       const url = this.photoUrl.trim();
       if (!url) {
@@ -80,11 +85,8 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.45);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -97,7 +99,7 @@ export default {
   border-radius: 22px;
   width: 460px;
   max-width: 95%;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -112,7 +114,6 @@ export default {
 
 .modal-title {
   font-size: 26px;
-  font-weight: bold;
   color: #222;
   margin: 0;
 }
@@ -124,6 +125,7 @@ export default {
   cursor: pointer;
   color: #666;
   padding: 4px;
+  transition: color 0.15s ease;
 }
 
 .btn-close-modal:hover {
@@ -170,7 +172,7 @@ export default {
   border-color: #000;
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
 
 .error-msg {
@@ -201,7 +203,7 @@ export default {
 .btn-primary:hover:not(:disabled) {
   background-color: #444;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
@@ -212,13 +214,27 @@ export default {
 .btn-secondary {
   padding: 12px 20px;
   background-color: #ccc;
+  color: #222;
   border: none;
   border-radius: 14px;
   font-size: 16px;
   cursor: pointer;
+  transition: 0.25s ease;
 }
 
 .btn-secondary:hover {
   background-color: #bbb;
+}
+
+@media (max-width: 600px) {
+  .modal-photo-card {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 </style>

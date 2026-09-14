@@ -1,4 +1,4 @@
-# ---- Stage 1: Build dell'applicazione Vue.js con Node ----
+# ---- Build dell'applicazione Vue.js con Node ----
 FROM node:lts AS builder
 
 # Imposta la cartella di lavoro
@@ -11,7 +11,7 @@ ENV HOME=/tmp
 COPY webui/package.json webui/yarn.lock webui/.yarnrc.yml ./
 COPY webui/.yarn ./.yarn
 
-# Installa le dipendenze con Yarn (modalità immutabile, senza modificare il lockfile)
+# Installa le dipendenze con Yarn
 RUN yarn install --immutable
 
 # Copia il resto del codice sorgente del frontend
@@ -20,10 +20,10 @@ COPY webui/ .
 # Compila l'applicazione per la produzione
 RUN yarn run build-prod
 
-# ---- Stage 2: Web server Nginx per servire i file statici ----
+# ---- Web server Nginx ----
 FROM nginx:stable
 
-# Copia i file compilati dallo stage di build nella directory pubblica di Nginx
+# Copia i file compilati dallo stage di build
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Espone la porta 80 (standard HTTP per i web server)

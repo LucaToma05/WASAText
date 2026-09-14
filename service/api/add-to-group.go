@@ -23,7 +23,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	var req structure.AddToGroupRequest
+	var req structure.UserId
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -43,6 +43,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
+	// Check if the chat is a group chat
 	flag, err := rt.db.IsGroup(chatId)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -53,7 +54,8 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	ok, err := rt.db.CheckUserInGroup(chatId, userId)
+	// Check if the user is in the group
+	ok, err := rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -78,7 +80,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	// Check if target user is already in the group
-	alreadyMember, err := rt.db.CheckUserInGroup(chatId, targetUserId)
+	alreadyMember, err := rt.db.CheckConversation(chatId, targetUserId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

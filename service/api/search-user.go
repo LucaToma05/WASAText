@@ -8,8 +8,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// searchUser handles GET /users?username=<name>
-// Returns 200 with user info if found, 404 if not found.
 func (rt *_router) searchUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	userId := ctx.UserId
 	if userId == "" {
@@ -17,12 +15,19 @@ func (rt *_router) searchUser(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	username := r.URL.Query().Get("username")
+	// Get username from parameters
+	username := ps.ByName("username")
+	if username == "" {
+		http.Error(w, "Parameters extraction error", http.StatusBadRequest)
+		return
+	}
+
 	if len(username) < 3 || len(username) > 25 {
 		http.Error(w, "Invalid username length", http.StatusBadRequest)
 		return
 	}
 
+	// Get user id from username
 	id, err := rt.db.GetIdUserByUsername(username)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -33,6 +38,7 @@ func (rt *_router) searchUser(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
+	// Get user info from user id
 	userInfo, err := rt.db.GetMyInformation(id)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

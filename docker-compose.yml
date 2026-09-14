@@ -1,4 +1,4 @@
-# Servizi docker 
+# Servizi docker (elenco dei container che compongono l'applicazione)
 services:
   # ---- Backend (Go API) ----
   backend:
@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.backend
     ports: # mappa la porta dell'host su quella del container backend
       - "3000:3000" 
-    volumes: # monta il database all'interno del container garantendo la persistenza dei dati
+    volumes: # collega il database all'interno del container garantendo la persistenza dei dati
       - ./cmd/webapi/wasatext.db:/tmp/wasatext.db
     restart: unless-stopped # riavvia il container se si arresta in modo anomalo
 

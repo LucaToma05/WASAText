@@ -38,6 +38,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
+	// Set the flag to false
 	userCreated := false
 
 	// Search for the user in the database
@@ -45,7 +46,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	} else if id == "" {
+	} else if id == "" { // If the user does not exist
 		userCreated = true
 		// Generate ID
 		id, err = generateId()
@@ -78,16 +79,22 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 }
 
+// Function to generate a random id
 func generateId() (string, error) {
+	// Characters allowed in id
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	// Length of the id
 	const length = 16
 
+	// Allocate a byte slice of the specified length
 	b := make([]byte, length)
+	// Fill the byte slice with random bytes (from 0 to 255)
 	_, err := rand.Read(b)
 	if err != nil {
 		return "", err
 	}
 
+	// Map each byte to a character in the allowed characters string
 	for i := 0; i < length; i++ {
 		b[i] = letters[int(b[i])%len(letters)]
 	}

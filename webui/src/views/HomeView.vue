@@ -7,23 +7,26 @@
       <!-- Barra dei pulsanti -->
       <div class="sidebar-top-bar">
         <div class="left-buttons">
-          <button class="sidebar-btn" @click="showCreateChat = true"> Nuova chat </button>
-          <button class="sidebar-btn" @click="openCreateGroupModal">Nuovo gruppo</button>
+          <!-- Se cliccato apre il pannello per creare una chat -->
+          <button class="sidebar-btn" @click="showCreateChat = true">Nuova chat</button>
+          <!-- Se cliccato apre il pannello per creare un gruppo -->
+          <button class="sidebar-btn" @click="showCreateGroup = true">Nuovo gruppo</button>
         </div>
 
         <div class="right-button">
-          <button class="sidebar-btn" @click="goToProfile">Profilo</button>
+          <!-- Se cliccato apre la pagina di gestione del profilo-->
+          <button class="sidebar-btn" @click="$router.push('/profile')">Profilo</button>
         </div>
       </div>
 
-      <!-- LISTA CHAT -->
+      <!-- LISTA CHAT da ChatItem.vue a cui passiamo proprietà e definiamo click -->
       <div class="sidebar-content">
         <ChatItem
           v-for="chat in sortedChats"
           :key="chat.chatId"
           :chat="chat"
           :is-selected="chat.chatId === selectedChatId"
-          :is-unread="isChatUnread(chat)"
+          :is-unread="chat.hasUnread"
           @click="openChat(chat.chatId)"
         />
       </div>
@@ -38,17 +41,13 @@
         <p>Seleziona una chat dalla sidebar.</p>
       </div>
 
-      <!-- CHAT APERTA -->
+      <!-- Se una chat è selezionata -->
       <div v-else class="chat-area">
 
         <!-- HEADER -->
         <div class="chat-header">
           <div class="chat-header-left">
-            <button class="btn-back-mobile" @click="goBackToList" title="Torna alla lista chat">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
+            <button class="btn-back-mobile" @click="goBackToList" title="Torna alla lista chat">←</button> <!-- Solo per mobile-->
             <img 
               :src="selectedChat.photo || '/default.png'" 
               class="chat-header-photo" 
@@ -65,30 +64,15 @@
             <button 
               type="button" 
               class="header-settings-btn" 
-              @click="openGroupSettings" 
+              @click="showGroupSettings = true" 
               title="Gestione gruppo"
-              aria-label="Gestione gruppo"
-            >
-              <svg 
-                class="gear-icon" 
-                viewBox="0 0 24 24" 
-                width="22" 
-                height="22" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                fill="none" 
-                stroke-linecap="round" 
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </button>
+            >⚙</button>
           </div>
         </div>
 
         <!-- MESSAGGI -->
         <div class="messages" ref="messagesContainer" @click="closeEmojiPicker">
+          <!-- Itera i messaggi in chat e assegna le classi -->
           <div 
             v-for="msg in selectedChat.messages"
             :key="msg.id"
@@ -96,218 +80,126 @@
             :class="{ 
               'sent': isMyMessage(msg), 
               'received': !isMyMessage(msg),
-              'is-mine': isMyMessage(msg), 
+              'is-deleted': isMessageDeleted(msg),
               'has-active-picker': activeEmojiPickerMessageId === msg.id 
             }"
           >
-            <!-- Nuvoletta Messaggio -->
-            <div 
-              class="message"
-              :class="{ 
-                'sent': isMyMessage(msg), 
-                'received': !isMyMessage(msg),
-                'is-mine': isMyMessage(msg), 
-                'is-deleted': isMessageDeleted(msg),
-                'has-active-picker': activeEmojiPickerMessageId === msg.id 
-              }"
-            >
-              <!-- Indicatore Inoltrato (in alto a destra del fumetto in stile WhatsApp) -->
-              <div v-if="!isMessageDeleted(msg) && msg.forwarded" class="forwarded-indicator">
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 14 20 9 15 4"></polyline>
-                  <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
-                </svg>
-                <span>Inoltrato</span>
-              </div>
+            <!-- Messaggio -->
+            <div class="message">
+              <!-- Se il messaggio è stato eliminato -->
+              <template v-if="isMessageDeleted(msg)">
+                <div class="message-text">
+                  <span class="tombstone-text"><em>Questo messaggio è stato eliminato</em></span>
+                </div>
+                <div class="message-meta">
+                  <span class="timestamp">{{ formatTime(msg.instant) }}</span>
+                </div>
+              </template>
 
-              <!-- Mittente: visibile solo nei messaggi ricevuti -->
-              <div v-if="!isMyMessage(msg)" class="message-sender">
-                {{ getSenderName(msg) }}
-              </div>
+              <!-- Messaggio attivo normale -->
+              <template v-else>
+                <!-- Indicatore Inoltrato -->
+                <div v-if="msg.forwarded" class="forwarded-indicator">
+                  ↪ Inoltrato
+                </div>
 
-              <!-- Citazione Risposta incorporata (stile WhatsApp) -->
-              <div v-if="!isMessageDeleted(msg) && getParsedMessage(msg).reply" class="message-reply-preview">
-                <div class="reply-preview-stripe"></div>
-                <div class="reply-preview-body">
-                  <span class="reply-preview-sender">{{ getParsedMessage(msg).reply.sender }}</span>
-                  <div class="reply-preview-text">
-                    <span v-if="getParsedMessage(msg).reply.isPhoto" class="photo-indicator">
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                      </svg>
-                      Foto
-                    </span>
-                    <span v-else>{{ getParsedMessage(msg).reply.text }}</span>
+                <!-- Mittente: visibile solo nei messaggi ricevuti -->
+                <div v-if="!isMyMessage(msg)" class="message-sender">
+                  {{ getSenderName(msg) }}
+                </div>
+
+                <!-- Messaggio con risposta incorporata -->
+                <div 
+                  v-if="getReplyInfo(msg)" 
+                  class="message-reply-preview"
+                >
+                  <div class="reply-preview-stripe"></div>
+                  <div class="reply-preview-body">
+                    <span class="reply-preview-sender">{{ getReplyInfo(msg).sender }}</span>
+                    <div class="reply-preview-text">
+                      <span v-if="getReplyInfo(msg).isPhoto" class="photo-indicator">📷 Foto</span>
+                      <span v-else>{{ getReplyInfo(msg).text }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Testo del messaggio / Foto / Tombstone -->
-              <div class="message-text" :class="{ 'is-deleted-text': isMessageDeleted(msg) }">
-                <span v-if="isMessageDeleted(msg)" class="tombstone-text">
-                  <em>Questo messaggio è stato eliminato</em>
-                </span>
-                <div v-else-if="isMessagePhoto(getParsedMessage(msg).text)" class="message-photo-wrapper">
-                  <img 
-                    :src="getMessagePhotoUrl(getParsedMessage(msg).text)" 
-                    class="message-photo-img" 
-                    alt="Foto messaggio" 
-                    loading="lazy"
-                  />
+                <!-- Testo del messaggio / Foto -->
+                <div class="message-text">
+                  <div v-if="isMessagePhoto(msg.text)" class="message-photo-wrapper">
+                    <img 
+                      :src="msg.text" 
+                      class="message-photo-img" 
+                      alt="Foto messaggio" 
+                      loading="lazy"
+                    />
+                  </div>
+                  <span v-else>{{ msg.text }}</span>
                 </div>
-                <span v-else>{{ getParsedMessage(msg).text }}</span>
-              </div>
 
-              <!-- Footer del fumetto: Contenitore dedicato alle reazioni posizionato sotto al testo (nascosto se eliminato) -->
-              <div 
-                v-if="!isMessageDeleted(msg) && msg.comments && msg.comments.length > 0" 
-                class="message-reactions-footer"
-              >
-                <button 
-                  v-for="(comment, cIdx) in msg.comments" 
-                  :key="comment.id || (comment.emoji + '-' + cIdx)"
-                  type="button"
-                  class="reaction-footer-badge"
-                  :class="{ 'is-mine': isMyReactionComment(comment) }"
-                  :title="isMyReactionComment(comment) ? 'Clicca per rimuovere la tua reazione (' + comment.emoji + ')' : 'Reazione aggiunta da ' + getReactionSenderName(comment)"
-                  @click.stop="handleCommentClick(msg, comment)"
-                >
-                  <span class="reaction-badge-emoji">{{ comment.emoji }}</span>
-                  <span class="reaction-badge-user">{{ getReactionSenderName(comment) }}</span>
-                </button>
-              </div>
-
-              <!-- Dettagli: Orario e Spunte di stato -->
-              <div class="message-meta">
-                <span class="timestamp">{{ formatTime(msg.instant) }}</span>
-
-                <!-- Spunte di stato: visibili solo per i messaggi inviati dall'utente e non eliminati -->
-                <span 
-                  v-if="isMyMessage(msg) && !isMessageDeleted(msg)" 
-                  class="message-status" 
-                  :class="getStatusClass(msg)"
-                  :title="getStatusTitle(msg)"
-                >
-                  <!-- Doppia spunta: visibile SOLO se letto da tutti i destinatari (altro utente in 1-a-1 o tutti i membri nei gruppi) -->
-                  <svg 
-                    v-if="isMessageRead(msg)" 
-                    class="check-icon double" 
-                    viewBox="0 0 18 12" 
-                    width="16" 
-                    height="11" 
-                    fill="none" 
-                    xmlns="http://www.w3.org/2000/svg"
+                <!-- Reazioni -->
+                <div v-if="msg.comments && msg.comments.length > 0" class="message-reactions-footer">
+                  <button 
+                    v-for="comment in msg.comments" 
+                    :key="comment.id"
+                    type="button"
+                    class="reaction-footer-badge"
+                    :class="{ 'is-mine': isMyReactionComment(comment) }"
+                    :title="isMyReactionComment(comment) ? 'Clicca per rimuovere la tua reazione (' + comment.emoji + ')' : 'Reazione aggiunta da ' + getReactionSenderName(comment)"
+                    @click.stop="handleCommentClick(msg, comment)"
                   >
-                    <path d="M1 6.5L4.5 10L11.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M6 6.5L9.5 10L16.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                    <span class="reaction-badge-emoji">{{ comment.emoji }}</span>
+                    <span class="reaction-badge-user">{{ getReactionSenderName(comment) }}</span>
+                  </button>
+                </div>
 
-                  <!-- Singola spunta: consegnato / ricevuto (in attesa di lettura da parte di tutti i destinatari) -->
-                  <svg 
-                    v-else 
-                    class="check-icon single" 
-                    viewBox="0 0 14 12" 
-                    width="13" 
-                    height="11" 
-                    fill="none" 
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M1.5 6.5L5 10L12 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-              </div>
+                <!-- Orario e spunte -->
+                <div class="message-meta">
+                  <span class="timestamp">{{ formatTime(msg.instant) }}</span>
+                  <span 
+                    v-if="isMyMessage(msg)" 
+                    class="message-status" 
+                    :class="getStatusClass(msg)"
+                    :title="getStatusTitle(msg)"
+                  >{{ isMessageRead(msg) ? '✓✓' : '✓' }}</span>
+                </div>
 
-              <!-- Barra azioni messaggio al passaggio del mouse: nascosta per i messaggi eliminati -->
-              <div v-if="!isMessageDeleted(msg)" class="message-action-toolbar">
-                <!-- Bottone Reazioni -->
-                <button 
-                  type="button" 
-                  class="msg-action-btn" 
-                  title="Reagisci"
-                  @click.stop="toggleEmojiPicker(msg.id)"
+                <!-- Barra azioni messaggio al passaggio del mouse -->
+                <div class="message-action-toolbar">
+                  <button type="button" class="msg-action-btn" title="Reagisci" @click.stop="toggleEmojiPicker(msg.id)">😊</button>
+                  <button type="button" class="msg-action-btn" title="Rispondi" @click.stop="startReply(msg)">↩</button>
+                  <button type="button" class="msg-action-btn" title="Inoltra" @click.stop="openForwardModal(msg)">↪</button>
+                  <button v-if="isMyMessage(msg)" type="button" class="msg-action-btn btn-delete-msg" title="Elimina messaggio" @click.stop.prevent="deleteMessage(msg)">🗑</button>
+                </div>
+
+                <!-- Selettore emoji -->
+                <div 
+                  v-if="activeEmojiPickerMessageId === msg.id" 
+                  class="emoji-picker-popup"
+                  :class="{ 'placement-bottom': emojiPickerPlacement === 'bottom' }"
+                  @click.stop
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                  </svg>
-                </button>
-
-                <!-- Bottone Rispondi -->
-                <button 
-                  type="button" 
-                  class="msg-action-btn" 
-                  title="Rispondi"
-                  @click.stop="startReply(msg)"
-                >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 17 4 12 9 7"></polyline>
-                    <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
-                  </svg>
-                </button>
-
-                <!-- Bottone Inoltra -->
-                <button 
-                  type="button" 
-                  class="msg-action-btn" 
-                  title="Inoltra"
-                  @click.stop="openForwardModal(msg)"
-                >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 17 20 12 15 7"></polyline>
-                    <path d="M4 18v-2a4 4 0 0 1 4-4h12"></path>
-                  </svg>
-                </button>
-
-                <!-- Bottone Elimina (visibile e cliccabile solo per i messaggi inviati dall'utente) -->
-                <button 
-                  v-if="isMyMessage(msg)" 
-                  type="button" 
-                  class="msg-action-btn btn-delete-msg" 
-                  title="Elimina messaggio"
-                  @click.stop.prevent="deleteMessage(msg)"
-                >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Popup Selettore 4 Emoji (👍, ❤️, 😂, 😮) -->
-              <div 
-                v-if="activeEmojiPickerMessageId === msg.id" 
-                class="emoji-picker-popup"
-                :class="{ 'placement-bottom': emojiPickerPlacement === 'bottom' }"
-                @click.stop
-              >
-                <button 
-                  v-for="emoji in reactionEmojis" 
-                  :key="emoji"
-                  type="button"
-                  class="emoji-option-btn"
-                  :class="{ 'is-selected': hasUserReactedWith(msg, emoji) }"
-                  @click="handleEmojiSelect(msg, emoji)"
-                  :title="hasUserReactedWith(msg, emoji) ? 'Rimuovi reazione' : 'Reagisci con ' + emoji"
-                >
-                  {{ emoji }}
-                </button>
-              </div>
+                  <button 
+                    v-for="emoji in ['👍', '❤️', '😂', '😮']" 
+                    :key="emoji"
+                    type="button"
+                    class="emoji-option-btn"
+                    :class="{ 'is-selected': hasUserReactedWith(msg, emoji) }"
+                    @click="handleEmojiSelect(msg, emoji)"
+                    :title="hasUserReactedWith(msg, emoji) ? 'Rimuovi reazione' : 'Reagisci con ' + emoji"
+                  >{{ emoji }}</button>
+                </div>
+              </template>
             </div>
 
           </div>
 
+          <!-- Messaggio se la chat non ha ancora messaggi -->
           <div v-if="selectedChat.messages.length === 0" class="no-messages">
             Nessun messaggio ancora. Inizia la conversazione!
           </div>
         </div>
 
-        <!-- BARRA PREVIEW RISPOSTA (quando si risponde a un messaggio) -->
+        <!-- Barra preview risposta (quando si risponde a un messaggio) -->
         <div v-if="replyingToMessage" class="reply-preview-bar">
           <div class="reply-preview-stripe"></div>
           <div class="reply-preview-body">
@@ -315,10 +207,10 @@
               Risposta a <strong>{{ getSenderName(replyingToMessage) }}</strong>
             </div>
             <div class="reply-preview-snippet">
-              <span v-if="isMessagePhoto(getParsedMessage(replyingToMessage).text)" class="photo-indicator">
+              <span v-if="isMessagePhoto(replyingToMessage.text)" class="photo-indicator">
                 📷 Foto
               </span>
-              <span v-else>{{ getMessageSnippet(getParsedMessage(replyingToMessage).text, 80) }}</span>
+              <span v-else>{{ replyingToMessage.text }}</span>
             </div>
           </div>
           <button type="button" class="btn-cancel-reply" @click="cancelReply" title="Annulla risposta">
@@ -328,19 +220,13 @@
 
         <!-- BOX INVIO -->
         <div class="send-box">
-          <!-- Pulsante per inviare foto tramite modale -->
+          <!-- Pulsante per inviare foto -->
           <button 
             type="button" 
             class="btn-attach-photo" 
-            @click="openPhotoModal" 
+            @click="showPhotoModal = true" 
             title="Invia una foto"
-            aria-label="Invia una foto"
-          >
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-              <circle cx="12" cy="13" r="4"></circle>
-            </svg>
-          </button>
+          >📷</button>
 
           <input 
             ref="messageInput"
@@ -356,24 +242,24 @@
 
     </div>
 
-    <!-- MODALI ESTRATTI -->
+    <!-- Pop-up a tutto schermo -->
     <CreateChatModal
       v-if="showCreateChat"
-      @close="closeCreateChat"
+      @close="showCreateChat = false"
       @created="onChatCreated"
     />
 
     <CreateGroupModal
       v-if="showCreateGroup"
-      @close="closeCreateGroup"
-      @created="onGroupCreated"
+      @close="showCreateGroup = false"
+      @created="onChatCreated"
     />
 
     <GroupSettingsModal
-      v-if="showGroupSettings && selectedChat && selectedChat.isGroup"
+      v-if="showGroupSettings"
       :chat="selectedChat"
       :current-user-id="userId"
-      @close="closeGroupSettings"
+      @close="showGroupSettings = false"
       @name-updated="onGroupNameUpdated"
       @photo-updated="onGroupPhotoUpdated"
       @member-added="onGroupMemberAdded"
@@ -381,12 +267,12 @@
     />
 
     <ForwardModal
-      v-if="showForwardModal && messageToForward"
+      v-if="showForwardModal"
       :message="messageToForward"
       :chats="chats"
       :current-chat-id="selectedChatId"
       @close="closeForwardModal"
-      @forwarded="onMessageForwarded"
+      @forwarded="loadChats"
     />
 
     <PhotoModal
@@ -400,6 +286,7 @@
 </template>
 
 <script>
+//Importazione componenti 
 import ChatItem from '../components/ChatItem.vue'
 import CreateChatModal from '../components/CreateChatModal.vue'
 import CreateGroupModal from '../components/CreateGroupModal.vue'
@@ -424,15 +311,13 @@ export default {
       selectedChat: null,
       selectedChatId: null,
       newMessage: "",
-      userId: localStorage.getItem("userId") || localStorage.getItem("token"),
+      userId: localStorage.getItem("token"),
       showCreateGroup: false,
       showGroupSettings: false,
 
-      // Reazioni (4 emoji: 👍, ❤️, 😂, 😮)
-      reactionEmojis: ['👍', '❤️', '😂', '😮'],
+      // Reazioni
       activeEmojiPickerMessageId: null,
       emojiPickerPlacement: 'top',
-      userCache: {},
 
       // Risposte
       replyingToMessage: null,
@@ -443,10 +328,7 @@ export default {
 
       // Invio foto
       showPhotoModal: false,
-      isSendingPhoto: false,
-
-      // Messaggi eliminati (tombstones)
-      deletedMessageIds: new Set()
+      isSendingPhoto: false
     };
   },
 
@@ -459,10 +341,7 @@ export default {
   },
 
   methods: {
-    goToProfile() {
-      this.$router.push("/profile");
-    },
-
+    // Metodo per tornare alla lista delle chat (versione mobile)
     goBackToList() {
       this.selectedChat = null;
       this.selectedChatId = null;
@@ -473,6 +352,7 @@ export default {
     async openChat(chatId) {
       this.selectedChatId = chatId;
 
+      // Recupera i messaggi della chat
       try {
         const response = await this.$axios.get(`/chats/${chatId}/messages`, {
           headers: {
@@ -480,43 +360,27 @@ export default {
           }
         });
 
+        // Check in caso la risposta non sia valida e ordinamento
         const messages = Array.isArray(response.data) ? response.data : [];
-
-        // Conserva i tombstones dei messaggi eliminati per questa chat
-        const existingDeleted = (this.selectedChat && this.selectedChat.chatId === chatId) 
-          ? (this.selectedChat.messages || []).filter(m => this.isMessageDeleted(m))
-          : [];
-        for (const delMsg of existingDeleted) {
-          if (!messages.some(m => String(m.id) === String(delMsg.id))) {
-            messages.push(delMsg);
-          }
-        }
         messages.sort((a, b) => new Date(a.instant || 0) - new Date(b.instant || 0));
 
-        // Popola la cache degli utenti a partire dai messaggi caricati
-        for (const msg of messages) {
-          const sId = (msg.sender || msg.userId || msg.idSender || "").toString().trim();
-          const sName = (msg.senderUsername || msg.senderName || "").toString().trim();
-          if (sId && sName && sName !== sId) {
-            this.userCache[sId] = sName;
-          }
-        }
-
+        // Aggiorna chat come letta
         const currentChatInfo = this.chats.find(c => c.chatId === chatId);
         if (currentChatInfo) {
           currentChatInfo.hasUnread = false;
-          currentChatInfo.unreadCount = 0;
         }
 
+        // Costruisce la chat selezionata
         this.selectedChat = {
           chatId,
           name: currentChatInfo?.name || "Chat",
           photo: currentChatInfo?.photo || "",
-          isGroup: Boolean(currentChatInfo?.isGroup ?? currentChatInfo?.type),
+          isGroup: currentChatInfo?.isGroup,
           participants: currentChatInfo?.participants || [],
           messages
         };
 
+        // Scrolla in fondo
         this.scrollToBottom();
 
       } catch (err) {
@@ -524,96 +388,77 @@ export default {
       }
     },
 
+    // Formatta l'orario in formato HH:MM
     formatTime(timeString) {
       if (!timeString) return "";
-      let str = timeString.toString().trim();
-      if (!str) return "";
-
-      // Normalizzazione data: se proviene da SQLite "YYYY-MM-DD HH:mm:ss", aggiunge T e Z per UTC
-      if (!str.includes("T") && str.includes(" ")) {
-        str = str.replace(" ", "T") + "Z";
-      } else if (str.includes("T") && !str.endsWith("Z") && !str.includes("+") && !str.includes("-", 10)) {
-        str += "Z";
-      }
-
-      const date = new Date(str);
-      if (isNaN(date.getTime())) return "";
-
-      return date.toLocaleTimeString("it-IT", {
+      const date = new Date(timeString);
+      return isNaN(date.getTime()) ? "" : date.toLocaleTimeString("it-IT", {
         hour: "2-digit",
         minute: "2-digit"
       });
     },
 
+    // Carica tutte le chat dell'utente
     async loadChats() {
       try {
+        // Chiamata all'endpoint /chats
         const response = await this.$axios.get(`/chats`, {
           headers: {
             Authorization: "Bearer " + localStorage.getItem("token")
           }
         });
 
+        // Controllo la risposta
         const rawList = Array.isArray(response.data) ? response.data : [];
-        const seenIds = new Set();
-        const uniqueChats = [];
 
-        for (const chat of rawList) {
-          const id = chat.chatId || chat.id;
-          if (id && !seenIds.has(id)) {
-            seenIds.add(id);
-            const isSelected = id === this.selectedChatId;
-            uniqueChats.push({
-              ...chat,
-              chatId: id,
-              isGroup: Boolean(chat.isGroup ?? chat.type),
-              displayName: chat.name,
-              lastMessageUserId: chat.lastMessageUserId || "",
-              hasUnread: isSelected ? false : Boolean(chat.hasUnread || (chat.unreadCount && chat.unreadCount > 0)),
-              unreadCount: isSelected ? 0 : (chat.unreadCount || (chat.hasUnread ? 1 : 0))
-            });
-          }
-        }
+        // Mantiene solo le chat con chatId valido ed elimina eventuali duplicati
+        const uniqueChats = [...new Map(rawList.filter(c => c && c.chatId).map(c => [c.chatId, c])).values()];
 
-        this.chats = uniqueChats;
+        // Costruisce l'array delle chat
+        this.chats = uniqueChats.map(chat => {
+          const isSelected = chat.chatId === this.selectedChatId;
+          return {
+            // Copia le proprietà della chat
+            ...chat,
+            hasUnread: isSelected ? false : chat.hasUnread
+          };
+        });
 
       } catch (err) {
         console.log("Errore caricamento chat:", err);
       }
     },
 
+    // Funzione che viene richiamata quando si crea una nuova chat
     async onChatCreated(newChatId) {
+      // Ricarica tutte le chat
       await this.loadChats();
+      // Seleziona la nuova chat appena creata
       if (newChatId) {
         await this.openChat(newChatId);
       }
     },
 
+    // Funzione che viene richiamata quando si invia un messaggio
     async sendMessage() {
+      // Verifica che il messaggio non sia vuoto
       if (this.newMessage.trim() === "") return;
 
-      let messageText = this.newMessage.trim();
+      const messageText = this.newMessage.trim();
+      const payload = {
+        text: messageText
+      };
 
-      // Se stiamo rispondendo a un messaggio, incorporiamo lo snippet del testo originale
+      // Se c'è un messaggio a cui stiamo rispondendo, lo aggiungiamo al payload
       if (this.replyingToMessage) {
-        const parsedOriginal = this.getParsedMessage(this.replyingToMessage);
-        const isPhoto = this.isMessagePhoto(parsedOriginal.text);
-        const snippet = isPhoto ? "" : this.getMessageSnippet(parsedOriginal.text, 80);
-
-        messageText = JSON.stringify({
-          replyTo: {
-            id: this.replyingToMessage.id,
-            sender: this.getSenderName(this.replyingToMessage),
-            text: snippet,
-            isPhoto
-          },
-          text: this.newMessage.trim()
-        });
+        payload.replyTo = this.replyingToMessage.id;
       }
 
+      // Invio del messaggio
       try {
         await this.$axios.post(
           `/chats/${this.selectedChatId}/messages`,
-          { text: messageText },
+          payload,
           {
             headers: {
               Authorization: "Bearer " + localStorage.getItem("token")
@@ -621,9 +466,13 @@ export default {
           }
         );
 
+        // Reset
         this.newMessage = "";
         this.replyingToMessage = null;
+
+        // Ricarica la chat e scrolla in fondo
         await this.openChat(this.selectedChatId);
+        await this.loadChats();
         this.scrollToBottom();
 
       } catch (err) {
@@ -631,47 +480,32 @@ export default {
       }
     },
 
-    openPhotoModal() {
-      this.showPhotoModal = true;
-    },
-
+    // Funzione che viene richiamata quando si chiude il pannello di invio foto
     closePhotoModal() {
       this.showPhotoModal = false;
       this.isSendingPhoto = false;
     },
-
+  
+    // Funzione che viene richiamata quando si invia una foto
     async sendPhotoMessage(url) {
+      // Verifica che l'url non sia vuoto
       if (!url) return;
-
-      let messageText = url;
-
-      // Se stiamo rispondendo a un messaggio, incorporiamo lo snippet del testo originale
-      if (this.replyingToMessage) {
-        const parsedOriginal = this.getParsedMessage(this.replyingToMessage);
-        const isPhoto = this.isMessagePhoto(parsedOriginal.text);
-        const snippet = isPhoto ? "" : this.getMessageSnippet(parsedOriginal.text, 80);
-
-        messageText = JSON.stringify({
-          replyTo: {
-            id: this.replyingToMessage.id,
-            sender: this.getSenderName(this.replyingToMessage),
-            text: snippet,
-            isPhoto
-          },
-          text: url
-        });
-      }
 
       this.isSendingPhoto = true;
 
+      // Costruisce il payload
+      const payload = {
+        text: url
+      };
+      if (this.replyingToMessage) {
+        payload.replyTo = this.replyingToMessage.id;
+      }
+
+      // Invio della foto
       try {
         await this.$axios.post(
           `/chats/${this.selectedChatId}/messages`,
-          {
-            text: messageText,
-            type: "photo",
-            url: url
-          },
+          payload,
           {
             headers: {
               Authorization: "Bearer " + localStorage.getItem("token")
@@ -679,8 +513,11 @@ export default {
           }
         );
 
+        // Reset
         this.closePhotoModal();
         this.replyingToMessage = null;
+
+        // Ricarica la chat e scrolla in fondo
         await this.openChat(this.selectedChatId);
         await this.loadChats();
         this.scrollToBottom();
@@ -692,214 +529,54 @@ export default {
       }
     },
 
-    isChatUnread(chat) {
-      if (!chat) return false;
-      // Se la chat è aperta, considerala già visualizzata
-      if (chat.chatId === this.selectedChatId) return false;
 
-      // Se l'ultimo messaggio è stato inviato dall'utente loggato, non è un messaggio ricevuto non letto
-      const myId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
-      if (chat.lastMessageUserId && myId && String(chat.lastMessageUserId) === String(myId)) {
-        return false;
-      }
-
-      return Boolean(chat.hasUnread || (chat.unreadCount && chat.unreadCount > 0));
-    },
-
-    isChatLastMessagePhoto(text) {
-      if (!text) return false;
-      const t = String(text).trim();
-      if (t === "Questo messaggio è stato eliminato") return false;
-      const parsed = this.getParsedMessage({ text });
-      const target = parsed.text || text;
-      if (String(target).trim() === "Questo messaggio è stato eliminato") return false;
-      return this.isMessagePhoto(target);
-    },
-
-    formatChatLastMessage(text) {
-      if (!text) return "";
-      const t = String(text).trim();
-      if (t === "Questo messaggio è stato eliminato") {
-        return "Questo messaggio è stato eliminato";
-      }
-      const parsed = this.getParsedMessage({ text });
-      const target = parsed.text || text;
-      if (String(target).trim() === "Questo messaggio è stato eliminato") {
-        return "Questo messaggio è stato eliminato";
-      }
-      if (this.isMessagePhoto(target)) {
-        return "📷 Foto";
-      }
-      if (parsed.reply) {
-        return target || "Risposta";
-      }
-      return target;
-    },
-
+    // Funzione che verifica se un messaggio è una foto (URL immagine o data URI)
     isMessagePhoto(text) {
       if (!text || typeof text !== "string") return false;
       const t = text.trim();
-      if (t.startsWith("{") && t.endsWith("}")) {
-        try {
-          const parsed = JSON.parse(t);
-          if (parsed.type === "photo" || parsed.isPhoto || (parsed.url && parsed.type === "photo")) {
-            return true;
-          }
-        } catch (e) {}
-      }
       return (
         /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg|bmp|avif)(\?.*)?)$/i.test(t) ||
-        /^data:image\//i.test(t) ||
-        (/^(https?:\/\/[^\s]+)$/i.test(t) && (
-          /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|$)/i.test(t) ||
-          /(?:image|photo|pic|avatar|placeholder|unsplash|imgur|cloudinary)/i.test(t)
-        ))
+        /^data:image\//i.test(t)
       );
     },
 
-    getMessagePhotoUrl(text) {
-      if (!text || typeof text !== "string") return "";
-      const t = text.trim();
-      if (t.startsWith("{") && t.endsWith("}")) {
-        try {
-          const parsed = JSON.parse(t);
-          if (parsed.url) return parsed.url;
-          if (parsed.text) return parsed.text;
-        } catch (e) {}
-      }
-      return t;
+    // Recupera le informazioni sul messaggio a cui si risponde (replyTo)
+    getReplyInfo(msg) {
+      if (!msg || !msg.replyTo) return null;
+      if (msg._replyInfo) return msg._replyInfo;
+
+      const originalMsg = this.selectedChat?.messages?.find(m => m.id === msg.replyTo);
+      const originalText = originalMsg?.text;
+      const isPhoto = this.isMessagePhoto(originalText);
+
+      const info = {
+        id: msg.replyTo,
+        sender: this.getSenderName(originalMsg),
+        text: originalText || "Risposta a un messaggio",
+        isPhoto
+      };
+
+      msg._replyInfo = info;
+      return info;
     },
 
-    getParsedMessage(msg) {
-      if (!msg || !msg.text) return { reply: null, text: "" };
-      const raw = msg.text;
-      if (typeof raw === "string" && (raw.startsWith('{"replyTo"') || raw.startsWith('{"_reply"'))) {
-        try {
-          const parsed = JSON.parse(raw);
-          return {
-            reply: parsed.replyTo || parsed._reply || null,
-            text: parsed.text || ""
-          };
-        } catch (e) {
-          // fallback su stringa pura
-        }
-      }
-      return { reply: null, text: raw };
-    },
-
-    getMessageSnippet(text, maxLen = 60) {
-      if (!text) return "";
-      const cleaned = text.replace(/\s+/g, " ").trim();
-      if (cleaned.length <= maxLen) return cleaned;
-      return cleaned.slice(0, maxLen) + "...";
-    },
-
-    getUserDisplayName(userId) {
-      if (!userId) return "Utente";
-      const uStr = userId.toString().trim();
-      const currentId = (this.userId || localStorage.getItem("userId") || localStorage.getItem("token") || "").toString().trim();
-      const currentUsername = (localStorage.getItem("username") || "").toString().trim();
-
-      if (uStr === currentId || (currentUsername && uStr === currentUsername)) {
-        return "Tu";
-      }
-
-      // 1. Controlla nella cache locale degli utenti conosciuti
-      if (this.userCache && this.userCache[uStr]) {
-        return this.userCache[uStr];
-      }
-
-      // 2. Cerca tra i messaggi caricati della chat corrente
-      if (this.selectedChat && this.selectedChat.messages) {
-        const foundMsg = this.selectedChat.messages.find(
-          m => (m.sender === uStr || m.userId === uStr || m.idSender === uStr) && (m.senderUsername || m.senderName)
-        );
-        if (foundMsg) {
-          const name = foundMsg.senderUsername || foundMsg.senderName;
-          this.userCache[uStr] = name;
-          return name;
-        }
-      }
-
-      // 3. Se è una chat 1-a-1, l'altro utente coincide con il nome della chat
-      const isGroup = this.selectedChat?.isGroup || this.chats.find(c => c.chatId === this.selectedChatId)?.isGroup;
-      if (!isGroup && this.selectedChat && this.selectedChat.name) {
-        this.userCache[uStr] = this.selectedChat.name;
-        return this.selectedChat.name;
-      }
-
-      // 4. Cerca tra i partecipanti della chat se disponibili
-      if (this.selectedChat && this.selectedChat.participants) {
-        const p = this.selectedChat.participants.find(
-          x => (x.userId === uStr || x.id === uStr || x.name === uStr || x.username === uStr)
-        );
-        if (p && (p.name || p.username)) {
-          const name = p.name || p.username;
-          this.userCache[uStr] = name;
-          return name;
-        }
-      }
-
-      // 5. Cerca nella lista delle conversazioni
-      const chatMatch = this.chats.find(c => c.chatId === uStr || c.name === uStr);
-      if (chatMatch && chatMatch.name) {
-        this.userCache[uStr] = chatMatch.name;
-        return chatMatch.name;
-      }
-
-      return uStr;
-    },
-
-    getGroupedReactions(msg) {
-      if (!msg.comments || !msg.comments.length) return [];
-      const currentId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
-      const groups = new Map();
-
-      for (const comment of msg.comments) {
-        const emoji = comment.emoji;
-        if (!groups.has(emoji)) {
-          groups.set(emoji, {
-            emoji,
-            comments: [],
-            names: [],
-            hasMyReaction: false,
-            myCommentId: null
-          });
-        }
-        const g = groups.get(emoji);
-        g.comments.push(comment);
-
-        const senderId = comment.sender || comment.idSender || comment.userId;
-        const isMine = senderId === currentId;
-        if (isMine) {
-          g.hasMyReaction = true;
-          g.myCommentId = comment.id;
-          g.names.push("Tu");
-        } else {
-          g.names.push(this.getUserDisplayName(senderId));
-        }
-      }
-
-      return Array.from(groups.values());
-    },
-
+    // Prende la reazione lasciata dall'utente loggato
     getUserReaction(msg) {
-      if (!msg || !msg.comments) return null;
-      const currentId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
-      return msg.comments.find(
-        c => c.sender === currentId || c.idSender === currentId || c.userId === currentId
-      );
+      return msg?.comments?.find(c => this.isMyReactionComment(c)) || null;
     },
 
+    // Verifica se l'utente ha lasciato una reazione con emoji specifica
     hasUserReactedWith(msg, emoji) {
-      const userReaction = this.getUserReaction(msg);
-      return userReaction && userReaction.emoji === emoji;
+      return this.getUserReaction(msg)?.emoji === emoji;
     },
 
+    // Posiziona il selettore delle emoji
     toggleEmojiPicker(messageId) {
+      // Se già aperto, non fa nulla
       if (this.activeEmojiPickerMessageId === messageId) {
         this.activeEmojiPickerMessageId = null;
         this.emojiPickerPlacement = 'top';
+      // Altrimenti lo apre
       } else {
         this.activeEmojiPickerMessageId = messageId;
         this.emojiPickerPlacement = 'top';
@@ -910,6 +587,7 @@ export default {
           const popup = container.querySelector('.emoji-picker-popup');
           if (!popup) return;
 
+          // Estrae le coordinate
           const popupRect = popup.getBoundingClientRect();
           const containerRect = container.getBoundingClientRect();
 
@@ -930,31 +608,33 @@ export default {
       }
     },
 
+    // Chiude il selettore di emoji
     closeEmojiPicker() {
       this.activeEmojiPickerMessageId = null;
       this.emojiPickerPlacement = 'top';
     },
 
+    // Gestisce la selezione di una emoji
     async handleEmojiSelect(msg, emoji) {
+      // Chiude il selettore di emoji
       this.closeEmojiPicker();
-      const existingReaction = this.getUserReaction(msg);
 
-      // Cliccando sulla stessa reazione: la rimuove (uncommentMessage)
-      if (existingReaction && existingReaction.emoji === emoji) {
-        await this.removeReaction(msg, existingReaction.id);
-        return;
+      // Controlla se l'utente ha già lasciato un emoji e in caso la rimuove
+      const existing = this.getUserReaction(msg);
+      if (existing) {
+        await this.removeReaction(msg, existing.id);
+        
+        // Se l'emoji è la stessa, non fa nulla
+        if (existing.emoji === emoji) return;
       }
 
-      // Se l'utente ha già una reazione diversa: la rimuove prima (massimo 1 reazione per utente)
-      if (existingReaction) {
-        await this.removeReaction(msg, existingReaction.id);
-      }
-
-      // Aggiunge la nuova reazione (commentMessage)
+      // Inserisce la nuova emoji
       await this.addReaction(msg, emoji);
     },
 
+    // Aggiunge un emoji a un messaggio
     async addReaction(msg, emoji) {
+      // Chiama l'API per aggiungere un emoji
       try {
         const response = await this.$axios.post(
           `/chats/${this.selectedChatId}/messages/${msg.id}/comments`,
@@ -966,28 +646,18 @@ export default {
           }
         );
 
-        const currentId = this.userId || localStorage.getItem("userId") || localStorage.getItem("token");
-        const currentUsername = localStorage.getItem("username") || "Tu";
-        const newComment = {
-          id: response.data?.id || ("temp-" + Date.now()),
-          emoji,
-          sender: currentId,
-          senderUsername: currentUsername,
-          senderName: currentUsername,
-          idSender: currentId,
-          userId: currentId,
-          messageId: msg.id
-        };
-
-        const list = Array.isArray(msg.comments) ? [...msg.comments] : [];
-        list.push(newComment);
-        msg.comments = list;
+        // Se il messaggio non ha ancora reazioni, inizializza l'array
+        if (!msg.comments) msg.comments = [];
+        // Inserisce la nuova reazione
+        msg.comments.push(response.data);
       } catch (err) {
         console.error("Errore aggiunta reazione:", err);
       }
     },
 
+    // Rimuove la reazione
     async removeReaction(msg, commentId) {
+      // Chiama l'API per rimuovere la reazione
       try {
         await this.$axios.delete(
           `/chats/${this.selectedChatId}/messages/${msg.id}/comments/${commentId}`,
@@ -998,448 +668,195 @@ export default {
           }
         );
 
-        if (msg.comments) {
-          msg.comments = msg.comments.filter(c => c.id !== commentId);
-        }
+        // Rimuove la reazione dall'array
+        msg.comments = msg.comments?.filter(c => c.id !== commentId);
       } catch (err) {
         console.error("Errore rimozione reazione:", err);
       }
     },
 
+    // Ottiene il nome del mittente di una reazione
     getReactionSenderName(comment) {
-      if (!comment) return "Utente";
-
-      // 1. Se coincide con l'utente attualmente loggato, mostra "Tu"
-      if (this.isMyReactionComment(comment)) {
-        return "Tu";
-      }
-
-      // 2. Verifica se sender è un oggetto User come da specifica OpenAPI (comment.sender.name o comment.sender.username)
-      if (typeof comment.sender === "object" && comment.sender !== null) {
-        if (comment.sender.name && comment.sender.name.trim() !== "") {
-          return comment.sender.name;
-        }
-        if (comment.sender.username && comment.sender.username.trim() !== "") {
-          return comment.sender.username;
-        }
-      }
-
-      // 3. Verifica se l'oggetto commento ha campi username/name arricchiti
-      if (comment.senderUsername && comment.senderUsername.trim() !== "" && comment.senderUsername !== comment.sender) {
-        return comment.senderUsername;
-      }
-      if (comment.senderName && comment.senderName.trim() !== "" && comment.senderName !== comment.sender) {
-        return comment.senderName;
-      }
-      if (comment.username && comment.username.trim() !== "" && comment.username !== comment.sender) {
-        return comment.username;
-      }
-      if (comment.name && comment.name.trim() !== "" && comment.name !== comment.sender) {
-        return comment.name;
-      }
-
-      // 4. Estrae l'identificatore del mittente
-      const senderId = (
-        (typeof comment.sender === "object" ? (comment.sender?.userId || comment.sender?.id) : comment.sender) ||
-        comment.idSender ||
-        comment.userId ||
-        ""
-      ).toString().trim();
-
-      if (!senderId) return "Utente";
-
-      // 5. Risoluzione tramite funzione di mappatura utenti
-      return this.getUserDisplayName(senderId);
+      // Se è una reazione dell'utente loggato, restituisce "Tu", altrimenti il nome del mittente
+      return this.isMyReactionComment(comment) ? "Tu" : comment.senderUsername;
     },
 
+    // Verifica se un commento è una reazione dell'utente loggato
     isMyReactionComment(comment) {
-      if (!comment) return false;
-      const senderId = (
-        (typeof comment.sender === "object" ? (comment.sender?.userId || comment.sender?.id) : comment.sender) ||
-        comment.idSender ||
-        comment.userId ||
-        ""
-      ).toString().trim();
-
-      const currentId = (this.userId || localStorage.getItem("userId") || localStorage.getItem("token") || "").toString().trim();
-      const currentUsername = (localStorage.getItem("username") || "").toString().trim();
-
-      if (currentId && senderId === currentId) {
-        return true;
-      }
-      if (currentUsername) {
-        const commentName = (
-          (typeof comment.sender === "object" ? (comment.sender?.name || comment.sender?.username) : "") ||
-          comment.senderUsername ||
-          comment.senderName ||
-          comment.username ||
-          comment.name ||
-          ""
-        ).toString().trim();
-        if (commentName && (commentName === currentUsername || senderId === currentUsername)) {
-          return true;
-        }
-      }
-      return false;
+      return comment?.sender === this.userId;
     },
 
+    // Gestisce il click su una reazione
     async handleCommentClick(msg, comment) {
       if (this.isMyReactionComment(comment)) {
         await this.removeReaction(msg, comment.id);
       }
     },
 
+    // Inizia a rispondere a un messaggio
     startReply(msg) {
+      // Imposta il messaggio a cui si sta rispondendo
       this.replyingToMessage = msg;
+      // Mostra l'anteprima del messaggio
       this.$nextTick(() => {
         this.$refs.messageInput?.focus();
       });
     },
 
+    // Annulla la risposta a un messaggio
     cancelReply() {
       this.replyingToMessage = null;
     },
 
+    // Apre il pannello per inoltrare un messaggio
     openForwardModal(msg) {
       this.messageToForward = msg;
       this.showForwardModal = true;
     },
 
+    // Chiude il pannello per inoltrare un messaggio
     closeForwardModal() {
       this.showForwardModal = false;
       this.messageToForward = null;
     },
 
-    onMessageForwarded(targetChat) {
-      this.loadChats();
-    },
-
+    // Verifica se un messaggio è stato inviato dall'utente loggato
     isMyMessage(message) {
-      if (!message) return false;
-      const currentId = (this.userId || localStorage.getItem("userId") || localStorage.getItem("token") || "").toString().trim();
-      const currentUsername = (localStorage.getItem("username") || "").toString().trim();
-
-      const sender = (message.sender || message.userId || message.idSender || "").toString().trim();
-      const senderUsername = (message.senderUsername || message.senderName || "").toString().trim();
-
-      if (currentId && (sender === currentId || senderUsername === currentId)) {
-        return true;
-      }
-      if (currentUsername && (sender === currentUsername || senderUsername === currentUsername)) {
-        return true;
-      }
-      return false;
+      return message?.sender === this.userId;
     },
 
+    // Verifica se un messaggio è stato eliminato
     isMessageDeleted(message) {
-      if (!message) return false;
-      if (message.isDeleted) return true;
-      if (this.deletedMessageIds && this.deletedMessageIds.has(String(message.id))) return true;
-      const text = (message.text || "").toString().trim();
-      return text === "Questo messaggio è stato eliminato";
+      return message?.deleted;
     },
 
-    async deleteMessage(messageOrId) {
-      console.log("[deleteMessage] Click evento eliminazione ricevuto:", messageOrId);
-
-      const targetMsg = (typeof messageOrId === 'object' && messageOrId !== null)
-        ? messageOrId
-        : (this.selectedChat?.messages || []).find(m => String(m.id) === String(messageOrId));
-
-      const messageId = targetMsg?.id || (typeof messageOrId === 'string' || typeof messageOrId === 'number' ? String(messageOrId) : null);
-      const chatId = this.selectedChatId || (this.selectedChat && this.selectedChat.chatId) || targetMsg?.chatId;
-
-      console.log("[deleteMessage] Dettagli parametri:", { messageId, chatId, targetMsg });
-
-      if (!messageId) {
-        console.error("[deleteMessage] Errore: messageId non trovato per", messageOrId);
-        return;
-      }
-      if (!chatId) {
-        console.error("[deleteMessage] Errore: chatId non trovato!");
-        return;
-      }
-
+    // Cancella un messaggio
+    async deleteMessage(msg) {
+      // Chiamata API per cancellare il messaggio
       try {
-        const token = localStorage.getItem("token");
-        console.log(`[deleteMessage] Invio richiesta API: DELETE /chats/${chatId}/messages/${messageId}`);
-
-        const response = await this.$axios.delete(`/chats/${chatId}/messages/${messageId}`, {
+        await this.$axios.delete(`/chats/${this.selectedChatId}/messages/${msg.id}`, {
           headers: {
-            Authorization: "Bearer " + token
+            Authorization: "Bearer " + localStorage.getItem("token")
           }
         });
 
-        console.log(`[deleteMessage] Chiamata API completata con successo. Status:`, response?.status);
+        // Aggiorna lo stato del messaggio
+        msg.deleted = true;
+        msg.text = "Questo messaggio è stato eliminato";
+        msg.comments = [];
+        msg.photo = null;
+        if (this.replyingToMessage?.id === msg.id) {
+          this.replyingToMessage = null;
+        }
 
-        // Aggiornamento reattivo dell'interfaccia (Tombstone)
-        this.markMessageAsDeleted(messageId);
+        // Aggiorna l'anteprima nella sidebar se è l'ultimo messaggio
+        const chat = this.chats.find(c => c.chatId === this.selectedChatId);
+        const lastMsg = this.selectedChat?.messages?.[this.selectedChat.messages.length - 1];
+        if (chat && lastMsg?.id === msg.id) {
+          chat.lastMessage = msg.text;
+        }
       } catch (err) {
-        console.error("[deleteMessage] Errore durante l'eliminazione:", err);
-        if (err.response) {
-          console.error("[deleteMessage] Errore risposta server:", {
-            status: err.response.status,
-            data: err.response.data
-          });
-        }
+        console.error("Errore durante l'eliminazione:", err);
       }
     },
 
-    deleteMessageHandler(messageOrId) {
-      return this.deleteMessage(messageOrId);
-    },
-
-    markMessageAsDeleted(messageId) {
-      const idStr = String(messageId);
-      if (!this.deletedMessageIds) {
-        this.deletedMessageIds = new Set();
-      }
-      this.deletedMessageIds.add(idStr);
-
-      if (this.selectedChat && Array.isArray(this.selectedChat.messages)) {
-        const idx = this.selectedChat.messages.findIndex(m => String(m.id) === idStr);
-        if (idx !== -1) {
-          const old = this.selectedChat.messages[idx];
-          const updated = {
-            ...old,
-            text: "Questo messaggio è stato eliminato",
-            isDeleted: true,
-            comments: [],
-            forwarded: false,
-            photo: null,
-            url: null
-          };
-          // Aggiornamento reattivo profondo con splice + riassegnazione array
-          this.selectedChat.messages.splice(idx, 1, updated);
-          this.selectedChat.messages = [...this.selectedChat.messages];
-          console.log("[markMessageAsDeleted] Messaggio aggiornato reattivamente nell'array:", updated);
-        } else {
-          console.warn("[markMessageAsDeleted] Messaggio con id non trovato nell'array:", idStr);
-        }
-      }
-
-      if (this.replyingToMessage && String(this.replyingToMessage.id) === idStr) {
-        this.replyingToMessage = null;
-      }
-
-      // Se il messaggio eliminato è l'ultimo della chat selezionata, aggiorna anche la preview nella sidebar
-      const currentChat = this.chats.find(c => c.chatId === this.selectedChatId);
-      if (currentChat && this.selectedChat && Array.isArray(this.selectedChat.messages) && this.selectedChat.messages.length > 0) {
-        const lastMsg = this.selectedChat.messages[this.selectedChat.messages.length - 1];
-        if (String(lastMsg.id) === idStr) {
-          currentChat.lastMessage = "Questo messaggio è stato eliminato";
-        }
-      }
-    },
-
+    // Restituisce il nome del mittente di un messaggio
     getSenderName(message) {
-      if (!message) return "";
-      if (message.senderUsername && message.senderUsername.trim() !== "") {
-        return message.senderUsername;
-      }
-      if (message.senderName && message.senderName.trim() !== "") {
-        return message.senderName;
-      }
-      if (message.author && message.author.trim() !== "") {
-        return message.author;
-      }
-
-      // Nelle chat 1-a-1, il mittente dei messaggi ricevuti è l'altro utente (nome della chat)
-      const isGroup = this.selectedChat?.isGroup || this.chats.find(c => c.chatId === this.selectedChatId)?.isGroup;
-      if (!isGroup && this.selectedChat && this.selectedChat.name) {
-        return this.selectedChat.name;
-      }
-
-      return message.sender || "Utente";
+      return message?.senderUsername;
     },
 
-    /**
-     * Determina se un messaggio inviato dall'utente corrente è stato letto da tutti i destinatari:
-     * - Nelle chat 1-a-1: non appena l'altro utente visualizza il messaggio (state === 2).
-     * - Nei gruppi: solo ed esclusivamente quando tutti i membri del gruppo (escluso me) lo hanno visualizzato.
-     */
+    // Determina se un messaggio è stato letto da tutti i destinatari
     isMessageRead(msg) {
-      if (!msg) return false;
-
-      // Nello standard WASAText / OpenAPI, state === 2 indica messaggio letto da tutti i destinatari
-      if (msg.state === 2) {
-        return true;
-      }
-
-      // Supporto se il backend fornisce la lista esplicita dei lettori (readBy / readers / readUsers)
-      const rawReaders = msg.readBy || msg.readers || msg.readUsers;
-      if (Array.isArray(rawReaders) && rawReaders.length > 0) {
-        const myId = (this.userId || localStorage.getItem("userId") || "").toString().trim();
-        const myUsername = (localStorage.getItem("username") || "").toString().trim();
-
-        // Escludi il mittente (me stesso) dai lettori
-        const otherReaders = rawReaders.filter(r => {
-          const rId = (typeof r === "object" ? (r.userId || r.id || r.username || r.name) : r).toString().trim();
-          return rId !== myId && rId !== myUsername;
-        });
-
-        const isGroup = Boolean(this.selectedChat?.isGroup);
-
-        if (!isGroup) {
-          // Chat 1-a-1: l'altro utente ha letto
-          return otherReaders.length >= 1;
-        } else {
-          // Nei gruppi: tutti i membri del gruppo (escluso me) devono aver letto
-          const participants = this.selectedChat?.participants || [];
-          const otherParticipants = participants.filter(p => {
-            const pId = (typeof p === "object" ? (p.userId || p.id || p.username || p.name) : p).toString().trim();
-            return pId !== myId && pId !== myUsername;
-          });
-
-          if (otherParticipants.length > 0) {
-            return otherReaders.length >= otherParticipants.length;
-          }
-
-          if (msg.totalRecipients && msg.readCount) {
-            return msg.readCount >= msg.totalRecipients;
-          }
-        }
-      }
-
-      // Se state === 1 (Ricevuto/Consegnato) o stato 0, o non tutti hanno ancora letto, resta singola spunta
-      return false;
+      return msg?.state === 2;
     },
 
-    getStatusClass(target) {
-      // Supporta sia l'oggetto messaggio che il valore numerico di state
-      if (typeof target === "object" && target !== null) {
-        if (this.isMessageRead(target)) return "status-read";
-        if (target.state === 1) return "status-received";
-        return "status-sent";
-      }
-      if (target === 2) return "status-read";
-      if (target === 1) return "status-received";
+    // Determina la classe CSS per lo stato di un messaggio
+    getStatusClass(msg) {
+      if (this.isMessageRead(msg)) return "status-read";
+      if (msg.state === 1) return "status-received";
       return "status-sent";
     },
 
-    getStatusTitle(target) {
-      if (typeof target === "object" && target !== null) {
-        if (this.isMessageRead(target)) {
-          return this.selectedChat?.isGroup ? "Letto da tutti i partecipanti" : "Letto";
-        }
-        if (target.state === 1) return "Consegnato / Ricevuto";
-        return "Inviato";
+    // Determina il titolo per lo stato di un messaggio
+    getStatusTitle(msg) {
+      if (this.isMessageRead(msg)) {
+        return this.selectedChat?.isGroup ? "Letto da tutti i partecipanti" : "Letto";
       }
-      if (target === 2) return "Letto";
-      if (target === 1) return "Ricevuto";
+      if (msg.state === 1) return "Consegnato / Ricevuto";
       return "Inviato";
     },
 
+    // Funzione di polling per aggiornare automaticamente la lista dei messaggi nella chat attiva
     async pollActiveChatMessages() {
       if (!this.selectedChatId) return;
 
       try {
+        // Chiama l'API per ottenere i messaggi della chat attiva
         const response = await this.$axios.get(`/chats/${this.selectedChatId}/messages`, {
           headers: {
             Authorization: "Bearer " + localStorage.getItem("token")
           }
         });
 
-        const newMessages = Array.isArray(response.data) ? response.data : [];
-
         // Verifica che la chat selezionata sia ancora la stessa al completamento della richiesta
-        if (this.selectedChat && this.selectedChat.chatId === this.selectedChatId) {
-          const oldLen = this.selectedChat.messages ? this.selectedChat.messages.length : 0;
+        if (this.selectedChat?.chatId === this.selectedChatId) {
+          // Prende i nuovi messaggi
+          const newMessages = response.data || [];
+          // Calcola il numero di messaggi prima dell'aggiornamento
+          const oldLen = this.selectedChat.messages?.length || 0;
+          // Aggiorna la lista dei messaggi
+          this.selectedChat.messages = newMessages;
 
-          // Conserva i messaggi eliminati (tombstones)
-          const existingDeleted = (this.selectedChat.messages || []).filter(m => this.isMessageDeleted(m));
-          const merged = [...newMessages];
-          for (const delMsg of existingDeleted) {
-            if (!merged.some(m => String(m.id) === String(delMsg.id))) {
-              merged.push(delMsg);
-            }
-          }
-          merged.sort((a, b) => new Date(a.instant || 0) - new Date(b.instant || 0));
-
-          // Assegna il nuovo array reattivamente
-          this.selectedChat.messages = merged;
-
-          // Se sono arrivati nuovi messaggi dall'esterno, scorre in fondo
-          if (merged.length > oldLen) {
+          // Se sono arrivati nuovi messaggi, scorre in fondo
+          if (newMessages.length > oldLen) {
             this.scrollToBottom();
           }
         }
       } catch (err) {
-        // Ignora silenziosamente errori transitori di polling
+        
       }
     },
 
     scrollToBottom() {
       this.$nextTick(() => {
         const container = this.$refs.messagesContainer;
-        if (container) {
-          container.scrollTop = container.scrollHeight;
-        }
+        if (container) container.scrollTop = container.scrollHeight;
       });
     },
 
-    closeCreateChat() {
-      this.showCreateChat = false;
-    },
-
-    openCreateGroupModal() {
-      this.showCreateGroup = true;
-    },
-
-    closeCreateGroup() {
-      this.showCreateGroup = false;
-    },
-
-    async onGroupCreated(newChatId) {
-      await this.loadChats();
-      if (newChatId) {
-        await this.openChat(newChatId);
-      }
-    },
-
-    openGroupSettings() {
-      if (!this.selectedChat || !this.selectedChat.isGroup) return;
-      this.showGroupSettings = true;
-    },
-
-    closeGroupSettings() {
-      this.showGroupSettings = false;
-    },
-
+    // Aggiorna nome gruppo
     onGroupNameUpdated(newName) {
       if (this.selectedChat) this.selectedChat.name = newName;
-      const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
-      if (chatInList) {
-        chatInList.name = newName;
-        chatInList.displayName = newName;
-      }
       this.loadChats();
     },
 
+    // Aggiorna foto gruppo
     onGroupPhotoUpdated(newPhoto) {
       if (this.selectedChat) this.selectedChat.photo = newPhoto;
-      const chatInList = this.chats.find(c => c.chatId === this.selectedChatId);
-      if (chatInList) {
-        chatInList.photo = newPhoto;
-      }
       this.loadChats();
     },
 
-    onGroupMemberAdded(username) {
+    // Aggiunge membro al gruppo
+    onGroupMemberAdded() {
+      // Ricarica i dettagli del gruppo
+      if (this.selectedChatId) this.openChat(this.selectedChatId);
+      // Aggiorna la sidebar
       this.loadChats();
-      if (this.selectedChatId) {
-        this.openChat(this.selectedChatId);
-      }
     },
 
-    onGroupLeft(chatId) {
+    // Abbandona il gruppo
+    onGroupLeft() {
+      // Resetta la chat attiva
       this.selectedChat = null;
       this.selectedChatId = null;
+      // Aggiorna la sidebar
       this.loadChats();
     }
   },
 
+  // Viene eseguito nell momento in cui HomeView viene caricata nel browser
   mounted() {
+    // Carica le conversazioni
     this.loadChats();
 
     // Polling periodico ogni 2.5s per aggiornare conversazioni e messaggi della chat attiva in tempo reale
@@ -1451,6 +868,7 @@ export default {
     }, 2500);
   },
 
+  // Prima che la finestra venga chiusa elimina il timer
   beforeUnmount() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -1550,101 +968,6 @@ export default {
   padding: 10px 0;
 }
 
-.chat-preview {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: 0.25s ease;
-  border-bottom: 1px solid #eee;
-  min-width: 0;
-}
-
-.chat-preview.selected {
-  background-color: #d0f0ff;
-  border-left: 5px solid #0077aa;
-}
-
-.chat-preview:hover {
-  background-color: #f5f5f5;
-}
-
-.chat-photo {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  object-fit: cover;
-}
-
-.chat-info {
-  flex: 1;
-  min-width: 0; /* Fondamentale: permette il troncamento dei testi nei figli flex */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.chat-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  min-width: 0;
-}
-
-.chat-name {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: bold; /* Sempre in grassetto */
-  font-size: 16px;
-  color: #1e293b;
-}
-
-.chat-time {
-  font-size: 12px;
-  color: #64748b;
-  flex-shrink: 0;
-  margin-left: 10px;
-  white-space: nowrap;
-}
-
-.chat-bottom-row,
-.chat-last-message-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-width: 0;
-  margin-top: 4px;
-}
-
-.chat-last-message {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 14px;
-  font-weight: 400;
-  color: #64748b;
-  margin-top: 0;
-}
-
-/* Indicatore verde per messaggi non letti */
-.unread-dot {
-  width: 10px;
-  height: 10px;
-  min-width: 10px;
-  min-height: 10px;
-  border-radius: 50%;
-  background-color: #25D366;
-  flex-shrink: 0;
-  margin-left: 8px;
-  display: inline-block;
-}
 
 /* Area principale */
 .home-main-area {
@@ -1757,6 +1080,8 @@ export default {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .header-settings-btn:hover {
@@ -1811,21 +1136,18 @@ export default {
   position: relative;
 }
 
-.message-wrapper.received,
-.message-wrapper:not(.is-mine) {
+.message-wrapper.received {
   align-self: flex-start;
   align-items: flex-start;
 }
 
-.message-wrapper.sent,
-.message-wrapper.is-mine {
+.message-wrapper.sent {
   align-self: flex-end;
   align-items: flex-end;
 }
 
 /* Garanzia stacking context: il messaggio con picker attivo sta sempre in primo piano */
-.message-wrapper.has-active-picker,
-.message.has-active-picker {
+.message-wrapper.has-active-picker {
   z-index: 50 !important;
 }
 
@@ -1846,8 +1168,7 @@ export default {
 }
 
 /* Messaggi Ricevuti (altri utenti): allineati a sinistra, sfondo bianco neutro */
-.message.received,
-.message:not(.is-mine) {
+.message-wrapper.received .message {
   align-self: flex-start;
   background-color: #ffffff;
   color: #111b21;
@@ -1859,8 +1180,7 @@ export default {
 }
 
 /* Messaggi Inviati (utente corrente): allineati a destra, verde chiaro WhatsApp */
-.message.sent,
-.message.is-mine {
+.message-wrapper.sent .message {
   align-self: flex-end;
   background-color: #dcf8c6;
   color: #111b21;
@@ -1882,10 +1202,6 @@ export default {
   margin-bottom: 4px;
   align-self: flex-end;
   user-select: none;
-}
-
-.forwarded-indicator svg {
-  stroke: #64748b;
 }
 
 /* Username mittente (visibile solo nei ricevuti) */
@@ -2054,10 +1370,10 @@ export default {
   display: inline-flex;
   align-items: center;
   margin-left: 2px;
-}
-
-.message-status .check-icon {
-  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1.5px;
 }
 
 .message-status.status-sent {
@@ -2089,9 +1405,7 @@ export default {
 }
 
 .message-wrapper:hover .message-action-toolbar,
-.message:hover .message-action-toolbar,
-.message-wrapper:focus-within .message-action-toolbar,
-.message:focus-within .message-action-toolbar {
+.message-wrapper:focus-within .message-action-toolbar {
   display: flex;
 }
 
@@ -2105,6 +1419,8 @@ export default {
   cursor: pointer;
   padding: 3px 5px;
   border-radius: 10px;
+  font-size: 13px;
+  line-height: 1;
   color: #64748b;
   display: flex;
   align-items: center;
@@ -2117,30 +1433,19 @@ export default {
   color: #0f172a;
 }
 
-.msg-action-btn svg {
-  pointer-events: none;
-}
-
 .msg-action-btn.btn-delete-msg:hover {
   background-color: #fee2e2;
   color: #ef4444;
 }
 
 /* Messaggio eliminato (Tombstone) */
-.message.is-deleted {
+.message-wrapper.is-deleted .message {
   background-color: #f1f5f9 !important;
   color: #94a3b8 !important;
   border: 1px dashed #cbd5e1;
   box-shadow: none !important;
 }
 
-.message.is-deleted.sent,
-.message.is-deleted.received {
-  background-color: #f1f5f9 !important;
-  color: #94a3b8 !important;
-}
-
-.message-text.is-deleted-text,
 .tombstone-text {
   font-style: italic;
   color: #94a3b8;
@@ -2150,7 +1455,6 @@ export default {
   user-select: none;
 }
 
-.message-text.is-deleted-text em,
 .tombstone-text em {
   font-style: italic;
 }
@@ -2180,16 +1484,12 @@ export default {
 }
 
 /* Messaggi Inviati (utente corrente): allineato rigorosamente a destra del fumetto per non sbordare a destra */
-.message.sent .emoji-picker-popup,
-.message.is-mine .emoji-picker-popup,
-.message-wrapper.sent .emoji-picker-popup,
-.message-wrapper.is-mine .emoji-picker-popup {
+.message-wrapper.sent .emoji-picker-popup {
   right: 0 !important;
   left: auto !important;
 }
 
 /* Messaggi Ricevuti (altri utenti): allineato a sinistra del fumetto */
-.message.received .emoji-picker-popup,
 .message-wrapper.received .emoji-picker-popup {
   left: 0 !important;
   right: auto !important;
@@ -2273,112 +1573,6 @@ export default {
   color: #1e293b;
 }
 
-/* Modal Inoltro */
-.modal-forward-card {
-  max-width: 440px;
-}
-
-.modal-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.btn-close-modal {
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: #64748b;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 50%;
-}
-
-.btn-close-modal:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
-}
-
-.forward-msg-preview-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-}
-
-.forward-msg-preview-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.forward-msg-preview-content {
-  font-size: 13px;
-  color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.forward-chats-list {
-  max-height: 220px;
-  overflow-y: auto;
-  margin: 12px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.forward-chat-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.forward-chat-row:hover {
-  background-color: #f1f5f9;
-}
-
-.forward-chat-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.forward-chat-meta {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.forward-chat-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.no-chats-found {
-  text-align: center;
-  padding: 16px;
-  font-size: 13px;
-  color: #94a3b8;
-  font-style: italic;
-}
-
 /* Nessun messaggio presente */
 .no-messages {
   text-align: center;
@@ -2387,19 +1581,6 @@ export default {
   font-size: 16px;
   font-style: italic;
   padding: 20px;
-}
-
-.chat-last-photo {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: #475569;
-  font-weight: 500;
-}
-
-.chat-last-photo .photo-icon {
-  font-size: 13px;
-  line-height: 1;
 }
 
 /* Box invio: saldamente ancorato in basso senza flex-grow */
@@ -2417,7 +1598,8 @@ export default {
 .btn-attach-photo {
   background: transparent;
   border: none;
-  color: #64748b;
+  font-size: 20px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2464,15 +1646,7 @@ export default {
 }
 
 
-.chat-last-deleted {
-  font-style: italic;
-  color: #94a3b8;
-}
 
-.chat-last-deleted em {
-  font-style: italic;
-  color: #94a3b8;
-}
 
 /* RESPONSIVE: preserva sempre il layout affiancato su 2 colonne senza scroll verticale dell'intera pagina */
 @media (max-width: 1024px) {
@@ -2563,14 +1737,14 @@ export default {
     padding: 10px 14px;
     font-size: 13px;
   }
-}
 
-.message-sender {
-  font-size: 11px;
-}
+  .message-sender {
+    font-size: 11px;
+  }
 
-.timestamp {
-  font-size: 10px;
+  .timestamp {
+    font-size: 10px;
+  }
 }
 
 /* Pulsante Indietro (visibile solo su mobile) */
@@ -2584,6 +1758,8 @@ export default {
   border-radius: 50%;
   flex-shrink: 0;
   transition: background-color 0.15s;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .btn-back-mobile:hover {

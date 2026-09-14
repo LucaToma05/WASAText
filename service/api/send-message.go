@@ -24,6 +24,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
+	// Check if chat exist
 	ok, err := rt.db.CheckIdConversation(chatId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -34,6 +35,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
+	// Check if user is in the chat
 	ok, err = rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -78,6 +80,8 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		ChatId:    chatId,
 		IdSender:  userId,
 		Forwarded: false,
+		Reply:     obj.ReplyTo != "",
+		ReplyTo:   obj.ReplyTo,
 	}
 
 	err = rt.db.SendMessage(newMessage)

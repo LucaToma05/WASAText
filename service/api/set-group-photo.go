@@ -11,7 +11,7 @@ import (
 )
 
 func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	var req structure.GroupPhotoRequest
+	var req structure.Photo
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -42,6 +42,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
+	// Check if chat is a group
 	flag, err := rt.db.IsGroup(chatId)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -52,7 +53,8 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	ok, err := rt.db.CheckUserInGroup(chatId, userId)
+	// Check if user is in the group
+	ok, err := rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

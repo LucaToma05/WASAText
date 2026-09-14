@@ -28,6 +28,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	// Check if conversation existe
 	ok, err := rt.db.CheckIdConversation(chatId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -38,6 +39,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	// Check if user is participant
 	ok, err = rt.db.CheckConversation(chatId, userId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -48,6 +50,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	// Check if the message exist in the chat
 	ok, err = rt.db.CheckMessageInChat(chatId, messageId)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -65,25 +68,25 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	// Generate comment id
 	commentId, err := generateId()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	senderInfo, errInfo := rt.db.GetMyInformation(userId)
-	var senderName string
-	if errInfo == nil && senderInfo.Name != "" {
-		senderName = senderInfo.Name
-	} else {
-		senderName = userId
+	// Get sender info
+	senderInfo, err := rt.db.GetMyInformation(userId)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
+	// Create new comment
 	newComment := structure.Comment{
 		ID:             commentId,
 		IdSender:       userId,
-		SenderUsername: senderName,
-		SenderName:     senderName,
+		SenderUsername: senderInfo.Name,
 		Emoji:          req.Emoji,
 		MessageId:      messageId,
 	}
@@ -93,6 +96,8 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	// Response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(newComment); err != nil {

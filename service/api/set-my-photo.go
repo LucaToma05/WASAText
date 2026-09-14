@@ -20,6 +20,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
+	// Check if URI is valid
 	if _, flag := url.ParseRequestURI(req.Url); flag != nil {
 		http.Error(w, "Invalid URI", http.StatusBadRequest)
 		return

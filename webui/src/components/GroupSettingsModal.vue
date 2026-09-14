@@ -1,6 +1,7 @@
 <template>
+  <!-- Se cliccata rimuove il pannello -->
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-card modal-group-card">
+    <div class="modal-group-card">
       <div class="modal-header-row">
         <h2 class="modal-title">Gestione Gruppo</h2>
         <button type="button" class="btn-close-modal" @click="$emit('close')" title="Chiudi">✕</button>
@@ -14,7 +15,7 @@
             v-model="editGroupName"
             type="text"
             placeholder="Nome del gruppo (3-25 caratteri)"
-            class="modal-input modal-input-compact"
+            class="modal-input"
             maxlength="25"
           />
           <button 
@@ -32,6 +33,7 @@
       <div class="modal-form-group">
         <label class="modal-label">Foto del gruppo (URL immagine)</label>
         <div class="photo-edit-section">
+          <!-- Preview della foto -->
           <div v-if="editGroupPhoto" class="photo-preview-box">
             <img :src="editGroupPhoto" class="group-photo-preview" alt="Anteprima foto" />
             <button type="button" class="btn-clear-photo" @click="editGroupPhoto = ''" title="Rimuovi foto">✕</button>
@@ -41,7 +43,7 @@
               v-model="editGroupPhoto"
               type="url"
               placeholder="Incolla il link (URL) dell'immagine..."
-              class="modal-input modal-input-compact"
+              class="modal-input"
             />
             <button 
               type="button" 
@@ -63,7 +65,7 @@
             v-model="newMemberUsername"
             type="text"
             placeholder="Username partecipante..."
-            class="modal-input modal-input-compact"
+            class="modal-input"
             @keyup.enter="addMemberToGroup"
           />
           <button 
@@ -83,7 +85,7 @@
 
       <hr class="modal-divider" />
 
-      <!-- Danger Zone: Abbandona Gruppo -->
+      <!-- Abbandona gruppo -->
       <div class="modal-danger-zone">
         <button 
           type="button" 
@@ -91,11 +93,6 @@
           :disabled="isLeavingGroup"
           @click="leaveGroup"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
           {{ isLeavingGroup ? 'Uscita in corso...' : 'Abbandona Gruppo' }}
         </button>
       </div>
@@ -130,19 +127,9 @@ export default {
       isLeavingGroup: false
     };
   },
-  watch: {
-    chat: {
-      immediate: true,
-      handler(newChat) {
-        if (newChat) {
-          this.editGroupName = newChat.name || "";
-          this.editGroupPhoto = newChat.photo || "";
-        }
-      }
-    }
-  },
   methods: {
     async updateGroupName() {
+      // Controllo del nome del gruppo
       const name = this.editGroupName.trim();
       if (!name) {
         this.errorMsg = "Inserisci un nome per il gruppo";
@@ -157,6 +144,7 @@ export default {
       this.errorMsg = "";
       this.successMsg = "";
 
+      // Aggiorna nome del gruppo
       try {
         await this.$axios.patch(
           `/chats/${this.chat.chatId}/name`,
@@ -178,6 +166,7 @@ export default {
     },
 
     async updateGroupPhoto() {
+      // Controllo URL foto
       const photoUrl = this.editGroupPhoto.trim();
       if (!photoUrl) {
         this.errorMsg = "Inserisci un URL valido per la foto del gruppo";
@@ -192,6 +181,7 @@ export default {
       this.errorMsg = "";
       this.successMsg = "";
 
+      // Aggiorna foto
       try {
         await this.$axios.put(
           `/chats/${this.chat.chatId}/photo`,
@@ -213,6 +203,7 @@ export default {
     },
 
     async addMemberToGroup() {
+      // Controllo username
       const username = this.newMemberUsername.trim();
       if (!username) {
         this.errorMsg = "Inserisci un username";
@@ -223,7 +214,8 @@ export default {
         return;
       }
 
-      const myId = this.currentUserId || localStorage.getItem("userId") || localStorage.getItem("token");
+      // Controllo se l'utente è già nel gruppo
+      const myId = this.currentUserId || localStorage.getItem("token");
       const myUsername = localStorage.getItem("username");
       if (username === myId || (myUsername && username.toLowerCase() === myUsername.toLowerCase())) {
         this.errorMsg = "Fai già parte di questo gruppo!";
@@ -234,28 +226,11 @@ export default {
       this.errorMsg = "";
       this.successMsg = "";
 
+      // Aggiungi membro
       try {
-        let targetUserId = username;
-        try {
-          const userRes = await this.$axios.get("/users", {
-            params: { username },
-            headers: {
-              Authorization: "Bearer " + localStorage.getItem("token")
-            }
-          });
-          if (userRes.data && userRes.data.userId) {
-            targetUserId = userRes.data.userId;
-          }
-        } catch (searchErr) {
-          if (searchErr.response?.status === 404) {
-            this.errorMsg = `L'utente "${username}" non esiste su WASAText.`;
-            return;
-          }
-        }
-
         await this.$axios.post(
           `/chats/${this.chat.chatId}/members`,
-          { userId: targetUserId },
+          { userId: username },
           {
             headers: {
               Authorization: "Bearer " + localStorage.getItem("token")
@@ -267,23 +242,17 @@ export default {
         this.newMemberUsername = "";
         this.$emit("memberAdded", username);
       } catch (err) {
-        if (err.response?.status === 500 || err.response?.status === 400) {
-          this.errorMsg = `Impossibile aggiungere "${username}". Potrebbe essere già membro del gruppo.`;
-        } else {
-          this.errorMsg = err.response?.data || `Errore nell'aggiunta dell'utente "${username}"`;
-        }
+        this.errorMsg = err.response?.data || `Errore nell'aggiunta dell'utente "${username}"`;
       } finally {
         this.isAddingMember = false;
       }
     },
 
     async leaveGroup() {
-      const confirmed = window.confirm(`Sei sicuro di voler abbandonare il gruppo "${this.chat.name}"?`);
-      if (!confirmed) return;
-
       this.isLeavingGroup = true;
       this.errorMsg = "";
 
+      // Abbandona il gruppo
       try {
         await this.$axios.delete(
           `/chats/${this.chat.chatId}/members`,
@@ -309,11 +278,8 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.45);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -328,7 +294,7 @@ export default {
   max-width: 95%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -343,7 +309,6 @@ export default {
 
 .modal-title {
   font-size: 26px;
-  font-weight: bold;
   color: #222;
   margin: 0;
 }
@@ -355,6 +320,7 @@ export default {
   cursor: pointer;
   color: #666;
   padding: 4px;
+  transition: color 0.15s ease;
 }
 
 .btn-close-modal:hover {
@@ -375,6 +341,9 @@ export default {
 }
 
 .modal-input {
+  height: 44px;
+  font-size: 15px;
+  padding: 8px 14px;
   box-sizing: border-box;
   border-radius: 12px;
   border: 2px solid #555;
@@ -386,13 +355,7 @@ export default {
   border-color: #000;
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 10px rgba(0,0,0,0.15);
-}
-
-.modal-input-compact {
-  height: 44px;
-  font-size: 15px;
-  padding: 8px 14px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
 
 .input-with-action {
@@ -414,7 +377,7 @@ export default {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: 0.15s;
+  transition: 0.15s ease;
 }
 
 .btn-action-small:hover:not(:disabled) {
@@ -446,11 +409,12 @@ export default {
   position: relative;
   width: 50px;
   height: 50px;
+  flex-shrink: 0;
 }
 
 .group-photo-preview {
-  width: 50px;
-  height: 50px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #222;
@@ -501,9 +465,6 @@ export default {
 }
 
 .btn-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   padding: 10px 18px;
   background-color: #ffebee;
   color: #c62828;
@@ -512,7 +473,7 @@ export default {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: 0.2s ease;
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -523,5 +484,12 @@ export default {
 .btn-danger:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .modal-group-card {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
 }
 </style>

@@ -1,32 +1,37 @@
 <template>
+  <!-- Applica la classe se la chat è selezionata -->
+   <!-- Se la chat viene cliccata viene emesso un evento click al componente padre-->
   <div 
     class="chat-preview"
-    :class="{ 
-      selected: isSelected,
-      'unread-chat': isUnread
-    }"
+    :class="{ selected: isSelected }"
     @click="$emit('click')"
   >
+    <!-- Foto della chat -->
     <img :src="chat.photo || '/default.png'" class="chat-photo" alt="Avatar" />
 
     <div class="chat-info">
       <div class="chat-top-row">
+        <!-- Nome della chat e orario ultimo messaggio -->
         <span class="chat-name">{{ chat.name }}</span>
         <span class="chat-time">{{ formattedTime }}</span>
       </div>
 
       <div class="chat-bottom-row">
         <div class="chat-last-message">
-          <span v-if="isPhoto" class="chat-last-photo">
+          <!-- Se l'ultimo messaggio è una foto -->
+          <span v-if="parsedContent.isPhoto" class="chat-last-photo">
             <span class="photo-icon">📷</span> Foto
           </span>
-          <span v-else-if="isDeleted" class="chat-last-deleted">
+          <!-- Se l'ultimo messaggio è un messaggio eliminato -->
+          <span v-else-if="parsedContent.isDeleted" class="chat-last-deleted">
             <em>Questo messaggio è stato eliminato</em>
           </span>
+          <!-- Altrimenti mostra il testo del messaggio -->
           <span v-else>
-            {{ displayMessage }}
+            {{ parsedContent.text }}
           </span>
         </div>
+        <!-- Indicatore di messaggio non letto -->
         <span v-if="isUnread" class="unread-dot" title="Nuovo messaggio non letto"></span>
       </div>
     </div>
@@ -35,7 +40,9 @@
 
 <script>
 export default {
+  // Nome del componente
   name: "ChatItem",
+  // Definisce gli oggetti passati
   props: {
     chat: {
       type: Object,
@@ -50,64 +57,33 @@ export default {
       default: false
     }
   },
+  // Dichiara che il componente può emettere l'evento click
   emits: ["click"],
+
+  // Definisce proprietà elaborate al variare degli oggetti passati
   computed: {
+    // Formatta l'orario dell'ultimo messaggio in formato HH:MM
     formattedTime() {
       if (!this.chat.lastMessageTime) return "";
-      let str = this.chat.lastMessageTime.toString().trim();
-      if (!str) return "";
-
-      if (!str.includes("T") && str.includes(" ")) {
-        str = str.replace(" ", "T") + "Z";
-      } else if (str.includes("T") && !str.endsWith("Z") && !str.includes("+") && !str.includes("-", 10)) {
-        str += "Z";
-      }
-
-      const date = new Date(str);
-      if (isNaN(date.getTime())) return "";
-
-      return date.toLocaleTimeString("it-IT", {
+      const date = new Date(this.chat.lastMessageTime);
+      return isNaN(date.getTime()) ? "" : date.toLocaleTimeString("it-IT", {
         hour: "2-digit",
         minute: "2-digit"
       });
     },
+    // Analizza il contenuto dell'ultimo messaggio per determinare se è una foto, un messaggio eliminato o un messaggio normale
     parsedContent() {
-      const text = this.chat.lastMessage;
-      if (!text) return { text: "", isPhoto: false, isDeleted: false };
-      const raw = String(text).trim();
+      let text = (this.chat.lastMessage || "").toString().trim();
 
-      if (raw === "Questo messaggio è stato eliminato") {
-        return { text: raw, isPhoto: false, isDeleted: true };
-      }
+      const isDeleted = text === "Questo messaggio è stato eliminato";
+      const isPhoto = !isDeleted && this.checkPhoto(text);
 
-      let inner = raw;
-      if (raw.startsWith("{") && raw.endsWith("}")) {
-        try {
-          const parsed = JSON.parse(raw);
-          inner = parsed.text || parsed.url || "";
-        } catch (e) {
-          inner = raw;
-        }
-      }
-
-      if (inner === "Questo messaggio è stato eliminato") {
-        return { text: inner, isPhoto: false, isDeleted: true };
-      }
-
-      const isPhoto = this.checkPhoto(inner);
-      return { text: inner, isPhoto, isDeleted: false };
-    },
-    isPhoto() {
-      return this.parsedContent.isPhoto;
-    },
-    isDeleted() {
-      return this.parsedContent.isDeleted;
-    },
-    displayMessage() {
-      return this.parsedContent.text;
+      return { text, isPhoto, isDeleted };
     }
   },
+  // Funzioni eseguibili
   methods: {
+    // Controlla se il messaggio è una foto usando una regex per identificare le estensioni comuni delle immagini
     checkPhoto(str) {
       if (!str || typeof str !== "string") return false;
       const t = str.trim();
@@ -145,8 +121,6 @@ export default {
 .chat-photo {
   width: 48px;
   height: 48px;
-  min-width: 48px;
-  min-height: 48px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -214,12 +188,9 @@ export default {
 .unread-dot {
   width: 10px;
   height: 10px;
-  min-width: 10px;
-  min-height: 10px;
   border-radius: 50%;
   background-color: #25D366;
   flex-shrink: 0;
   margin-left: 8px;
-  display: inline-block;
 }
 </style>

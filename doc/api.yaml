@@ -6,7 +6,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: /v1
+  - url: /
     description: WASAText API server
 
 components:
@@ -27,7 +27,21 @@ components:
         photo:
           $ref: '#/components/schemas/Photo'
       required:
-      - userId
+        - userId
+    
+    Username:
+      description: Username object
+      type: object
+      properties:
+        username:
+          type: string
+          description: User nickname
+          pattern: '^(?=.*\S).+$'
+          minLength: 3
+          maxLength: 25
+          example: "Luca"
+      required:
+        - username
     
     Photo:
       description: User or group profile photo
@@ -67,7 +81,7 @@ components:
         Chat preview object showing name, photo, last message and its sending time
       type: object
       properties:
-        id:
+        chatId:
           $ref: '#/components/schemas/GeneralId'
         name:
           type: string
@@ -80,14 +94,27 @@ components:
           $ref: '#/components/schemas/Photo'
         lastMessage:
           $ref: '#/components/schemas/Message'
-        lastMessageInstant:
+        lastMessageTime:
           type: string
           minLength: 1
           maxLength: 100
           description: Message sending time
           format: date-time
           pattern: '^(?=.*\S).+$'
-
+        isGroup:
+          type: boolean
+          description: True if the chat is a group chat, false if it is a single chat
+        hasUnread:
+          type: boolean
+          description: True if the chat has unread messages, false if it has no unread messages
+        unreadCount:
+          type: integer
+          description: Number of unread messages
+          example: 1
+          minimum: 0
+          maximum: 100
+        lastMessageUserId:
+          $ref: '#/components/schemas/GeneralId'
         
     Message:
       description: Message object
@@ -128,7 +155,20 @@ components:
             - 2
         forwarded:
           type: boolean
-          description: Define is the message is forwarder (true = forwarder, false = no)
+          description: Defines if the message is forwarded (true = forwarded, false = no)
+        reply:
+          type: boolean
+          description: Defines if the message is a reply to another message
+        replyTo:
+          $ref: '#/components/schemas/GeneralId'
+          description: ID of the message being replied to
+        senderUsername:
+          type: string
+          description: Username of the sender
+          example: "Luca"
+        deleted:
+          type: boolean
+          description: True if the message has been deleted, false otherwise
       required:
         - text
        
@@ -141,6 +181,10 @@ components:
           $ref: '#/components/schemas/GeneralId'
         sender:
           $ref: '#/components/schemas/GeneralId'
+        senderUsername:
+          type: string
+          description: Username of the sender of the reaction
+          example: "Luca"
         emoji:
           type: string
           description: Emoji used to react to the message
@@ -154,22 +198,18 @@ components:
         - emoji
     
     Messages:
-      description: List of messages in reverse chronological order
-      type: object
-      properties:
-        messages:
-          type: array
-          description: List of messages in reverse chronological order
-          minItems: 0
-          maxItems: 1000
-          items:
-            $ref: '#/components/schemas/Message'
+      description: List of messages of the conversation
+      type: array
+      minItems: 0
+      maxItems: 1000
+      items:
+        $ref: '#/components/schemas/Message'
         
     Chat:
       description: Generic chat object (single or group chat)
       type: object
       properties:
-        id: 
+        chatId: 
           $ref: '#/components/schemas/GeneralId'
         isGroup:
           type: boolean
@@ -182,14 +222,16 @@ components:
           maxLength: 25
           example: "Luca"
         photo:
-          $ref: '#/components/schemas/Photo'
+          type: string
+          description: Chat profile photo URL
+          example: "https://foto.com/foto.png"
         participants:
           type: array
           description: List of participants in the chat
           minItems: 1
           maxItems: 100
           items:
-            $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/Username'
         messages:
           type: array
           description: List of messages in the chat
@@ -341,10 +383,10 @@ paths:
                 description: User identifier response
                 type: object
                 properties:
-                  userId:
+                  token:
                     $ref: '#/components/schemas/GeneralId'
               example:
-                userId: "avfd457ud3"
+                token: "avfd457ud3"
         "201":
           description: The user has been created and has logged in.
           content:
@@ -353,14 +395,39 @@ paths:
                 description: Created user identifier response
                 type: object
                 properties:
-                  userId:
+                  token:
                     $ref: '#/components/schemas/GeneralId'
               example:
-                userId: "avfd457ud3"
+                token: "avfd457ud3"
         "400":
           $ref: '#/components/responses/BadRequest'
         "500":
           $ref: '#/components/responses/InternalServerError'
+
+  /me:
+    get:
+      tags: ["user"]
+      operationId: getMyInformation
+      summary: Returns current user profile
+      description: |
+        Returns the profile information of the currently authenticated user
+      responses:
+        "200":
+          description: User profile returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                userId: "avfd457ud3"
+                name: "Luca"
+                photo: "https://foto.com/foto.png"
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
                 
   /me/username: 
     patch:
@@ -395,7 +462,7 @@ paths:
                 description: Updated username response body
                 type: object
                 properties:
-                  username:
+                  name:
                     description: Updated nickname
                     type: string
                     minLength: 3
@@ -403,7 +470,7 @@ paths:
                     pattern: '^[A-Za-z0-9]+$'
                     example: "NewUsername"
               example:
-                username: "NewUsername"
+                name: "NewUsername"
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -448,8 +515,46 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
-              
-                    
+
+  /users/{username}:
+    get:
+      tags: ["user"]
+      operationId: searchUser
+      summary: Search user by username
+      description: |
+        Search a user by username and return the user profile
+      parameters:
+        - name: username
+          in: path
+          description: Username of the user to search
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 25
+            example: "Luca"
+      responses:
+        "200":
+          description: User found successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                userId: "avfd457ud3"
+                name: "Luca"
+                photo: "https://foto.com/foto.png"
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
   /chats:
     get:
       tags: ["chat"]
@@ -466,19 +571,23 @@ paths:
                 $ref: '#/components/schemas/ChatList'
               example:
                 chats:
-                  - id: "avfd457ud3"
-                    name: "Luca"
-                    photo:
-                      url: "https://foto.com/foto.png"
-                    lastMessage:
-                      id: "avfd457ud3"
-                      sender: "avfd457ud3"
-                      chatId: "avfd457ud3"
-                      text: "ciao"
-                      instant: "2026-09-08T22:00:00Z"
-                      state: 1
-                      forwarded: false
-                    lastMessageInstant: "2026-09-08T22:00:00Z"
+                - chatId: "avfd457ud3"
+                  name: "Luca"
+                  photo:
+                    url: "https://foto.com/foto.png"
+                  lastMessage:
+                    id: "avfd457ud3"
+                    sender: "avfd457ud3"
+                    chatId: "avfd457ud3"
+                    text: "ciao"
+                    instant: "2026-09-08T22:00:00Z"
+                    state: 1
+                    forwarded: false
+                  lastMessageTime: "2026-09-08T22:00:00Z"
+                  isGroup: false
+                  hasUnread: true
+                  unreadCount: 1
+                  lastMessageUserId: "avfd457ud3"
         "401":
           $ref: '#/components/responses/UnauthorizedError'
         "500":
@@ -498,26 +607,32 @@ paths:
         content:
           application/json:
             schema:
-              description: User or group type of conversation
+              description: Parameters to create a conversation (direct 1-to-1 chat or group chat)
               type: object
               properties:
-                type:
-                  description: Type of conversation to create (true for group, false for user)
-                  type: boolean 
-                participants:
-                  description: User or group to create a chat with
-                  type: array
-                  minItems: 1
-                  maxItems: 100
-                  items:
-                    $ref: '#/components/schemas/GeneralId'
+                id:
+                  $ref: '#/components/schemas/GeneralId'
+                isGroup:
+                  description: True for group chat, false for direct 1-to-1 chat
+                  type: boolean
                 name:
-                  description: Group name (only for group chats)
+                  description: Recipient username for direct 1-to-1 chat or group name for group chat
                   type: string
                   pattern: '^(?=.*\S).+$'
                   minLength: 3
                   maxLength: 25
-                  example: "Group name"
+                  example: "Luca"
+                photo:
+                  description: Group profile photo URL (optional)
+                  type: string
+                  example: "https://foto.com/foto.png"
+                participants:
+                  description: List of group members (username objects) to add to the group chat
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    $ref: '#/components/schemas/Username'
       responses:
         "201":
           description: Chat created successfully and returned
@@ -526,14 +641,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Chat'
               example:
-                id: "avfd457ud3"
+                chatId: "avfd457ud3"
                 isGroup: false
                 name: "Luca"
-                photo:
-                  url: "https://foto.com/foto.png"
+                photo: "https://foto.com/foto.png"
                 participants:
-                  - userId: "avfd457ud3"
-                    name: "Luca"
+                  - username: "Luca"
                 messages: []
         "400":
           $ref: '#/components/responses/BadRequest'
@@ -562,14 +675,16 @@ paths:
               schema: 
                 $ref: '#/components/schemas/Messages'
               example:
-                messages:
-                  - id: "avfd457ud3"
-                    sender: "avfd457ud3"
-                    chatId: "avfd457ud3"
-                    text: "ciao"
-                    instant: "2026-09-08T22:00:00Z"
-                    state: 1
-                    forwarded: false
+                - id: "avfd457ud3"
+                  sender: "avfd457ud3"
+                  senderUsername: "Luca"
+                  chatId: "avfd457ud3"
+                  text: "ciao"
+                  instant: "2026-09-08T22:00:00Z"
+                  state: 1
+                  forwarded: false
+                  deleted: false
+                  comments: []
         "400":
           $ref: '#/components/responses/BadRequest'
         "401":
@@ -605,6 +720,9 @@ paths:
                   example: "ciao"
                   minLength: 1
                   maxLength: 1000
+                replyTo:
+                  $ref: '#/components/schemas/GeneralId'
+                  description: ID of the message being replied to (optional)
       responses:
         "201":
           description: Message sent successfully and returned
@@ -682,10 +800,10 @@ paths:
               description: Forward message request body
               type: object
               properties:
-                userId:
+                chatId:
                   $ref: '#/components/schemas/GeneralId'
               required:
-                - userId
+                - chatId
       responses:
         "201":
           description: Message forwarded successfully and returned
@@ -924,6 +1042,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         "403":
           $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
         "500":
           $ref: '#/components/responses/InternalServerError'
       security:

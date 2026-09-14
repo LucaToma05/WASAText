@@ -29,7 +29,7 @@
         </button>
       </div>
 
-      <!-- AZIONI -->
+      <!-- PULSANTI -->
       <div class="actions">
         <button class="btn-secondary" @click="goHome">
           Torna alla Home
@@ -101,6 +101,7 @@
 
 <script>
 export default {
+  // Stati reattivi
   data() {
     return {
       username: "",
@@ -116,19 +117,16 @@ export default {
 
   async mounted() {
     try {
+      // Ottiene informazioni dell'utente loggato
       const response = await this.$axios.get("/me", {
         headers: {
           Authorization: "Bearer " + localStorage.getItem("token")
         }
       });
 
+      // Aggiorna dati
       this.username = response.data.name;
-
-      // Foto profilo con fallback
-      this.userPhoto =
-        response.data.photo && response.data.photo.trim() !== ""
-          ? response.data.photo
-          : "https://i.pinimg.com/474x/13/74/20/137420f5b9c39bc911e472f5d20f053e.jpg?nii=t";
+      this.userPhoto = response.data.photo || "/default.png";
 
     } catch (err) {
       console.log("Errore caricamento profilo", err);
@@ -136,14 +134,17 @@ export default {
   },
 
   methods: {
+    // Metodo per cambiare username
     async changeUsername() {
       this.errorMsg = "";
 
+      // Controlla che l'username non sia vuoto
       if (this.newUsername.trim() === "") {
         this.errorMsg = "Inserisci un username valido";
         return;
       }
 
+      // Aggiorna username
       try {
         const res = await this.$axios.patch(
           "/me/username",
@@ -155,6 +156,7 @@ export default {
           }
         );
 
+        // Aggiorna i dati
         this.username = res.data.name;
         this.newUsername = "";
         this.showUsernameModal = false;
@@ -168,15 +170,18 @@ export default {
       }
     },
 
+    // Metodo per cambiare foto profilo
     async changePhoto() {
       this.errorMsgPhoto = "";
 
+      // Controlla che l'URL non sia vuoto
       if (this.newPhotoUrl.trim() === "") {
         this.errorMsgPhoto = "Inserisci un URL valido";
         return;
       }
 
       try {
+        // Aggiorna foto profilo
         const res = await this.$axios.put(
           "/me/photo",
           { url: this.newPhotoUrl },
@@ -187,6 +192,7 @@ export default {
           }
         );
 
+        // Aggiorna i dati
         this.userPhoto = res.data.url;
         this.newPhotoUrl = "";
         this.showPhotoModal = false;
@@ -200,10 +206,12 @@ export default {
       }
     },
 
+    // Naviga verso la HomeView
     goHome() {
       this.$router.push("/home");
     },
 
+    // Naviga verso la LoginView
     goLogin() {
       this.$router.push("/login");
     }
@@ -274,13 +282,6 @@ export default {
   font-weight: bold;
   border: 2px solid #ccc;
   word-break: break-word;
-}
-
-.username-input {
-  padding: 10px;
-  border-radius: 10px;
-  border: 2px solid #ccc;
-  font-size: 16px;
 }
 
 .error-msg {
@@ -395,7 +396,6 @@ export default {
     gap: 10px;
   }
 
-  .actions .btn-primary,
   .actions .btn-secondary,
   .actions .btn-danger {
     width: 100%;
