@@ -856,6 +856,12 @@ export default {
 
   // Viene eseguito nell momento in cui HomeView viene caricata nel browser
   mounted() {
+    // Se l'utente non è autenticato (token assente), reindirizza al login
+    if (!this.userId) {
+      this.$router.push("/login");
+      return;
+    }
+
     // Carica le conversazioni
     this.loadChats();
 

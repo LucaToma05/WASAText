@@ -4,9 +4,6 @@ FROM node:lts AS builder
 # Imposta la cartella di lavoro
 WORKDIR /app
 
-# Imposta HOME su /tmp per evitare problemi di permessi con la cache di Yarn
-ENV HOME=/tmp
-
 # Copia i file di configurazione e le dipendenze
 COPY webui/package.json webui/yarn.lock webui/.yarnrc.yml ./
 COPY webui/.yarn ./.yarn

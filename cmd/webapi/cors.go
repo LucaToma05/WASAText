@@ -14,7 +14,6 @@ func applyCORSHandler(h http.Handler) http.Handler {
 		handlers.AllowedHeaders([]string{ // abilita gli header HTTP che il browser può inviare
 			"Content-Type",
 			"Authorization",
-			"Access-Control-Allow-Origin",
 		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS", "DELETE", "PUT", "PATCH"}), // abilita i metodi HTTP ammessi
 		// Do not modify the CORS origin and max age, they are used in the evaluation.

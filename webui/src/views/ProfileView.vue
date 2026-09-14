@@ -116,11 +116,17 @@ export default {
   },
 
   async mounted() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      this.$router.push("/login");
+      return;
+    }
+
     try {
       // Ottiene informazioni dell'utente loggato
       const response = await this.$axios.get("/me", {
         headers: {
-          Authorization: "Bearer " + localStorage.getItem("token")
+          Authorization: "Bearer " + token
         }
       });
 
@@ -211,8 +217,10 @@ export default {
       this.$router.push("/home");
     },
 
-    // Naviga verso la LoginView
+    // Effettua il logout pulendo il localStorage e navigando verso la LoginView
     goLogin() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
       this.$router.push("/login");
     }
   }

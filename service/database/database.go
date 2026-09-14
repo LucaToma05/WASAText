@@ -89,8 +89,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, fmt.Errorf("foreign key activation error: %w", errPragma)
 	}
 
-	// Busy timeout for concurrent access and journal mode DELETE for direct file persistence
-	_, _ = db.Exec(`PRAGMA busy_timeout = 5000;`)
+	// Le modifiche vengono salvate direttamente sul database senza passare per file temporanei
 	_, _ = db.Exec(`PRAGMA journal_mode = DELETE;`)
 
 	// users table creation
